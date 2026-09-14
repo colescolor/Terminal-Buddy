@@ -88,6 +88,12 @@ try {
   check('unlinked chats reopen as plain folder terminals without launching an agent',saved().sessions.length===6 && saved().sessions.slice(3).every(s=>!s.resume && !s.agent && s.cwd.toLowerCase()===project.toLowerCase()))
   check('only the missing folder is retained for recovery',saved().unrestoredSessions.length===1 && saved().unrestoredSessions[0].title==='Missing folder')
   check('terminal-only recovery does not replay arbitrary saved commands',!await ev("document.body.textContent.includes('MUST_NOT_EXECUTE')") && !saved().sessions[2].initialCommand)
+  // Running `claude` by hand in an unlinked tab writes a transcript Buddy never assigned.
+  const byHand = '33333333-3333-4333-8333-333333333333', byHandDir = join(testHome, '.claude', 'projects', project.replace(/[^A-Za-z0-9]/g, '-'))
+  mkdirSync(byHandDir, { recursive: true })
+  writeFileSync(join(byHandDir, byHand+'.jsonl'), JSON.stringify({type:'user',sessionId:byHand,cwd:project,message:{content:'Started by hand'}})+'\n')
+  for(let i=0;i<100 && !saved().sessions.some(s=>s.resume?.id===byHand);i++)await sleep(100)
+  check('a chat started by hand in an unlinked tab links itself for the next launch',saved().sessions.filter(s=>s.resume?.id===byHand && s.resume.agent==='claude').length===1,JSON.stringify(saved().sessions.map(s=>s.resume?.id)))
   // Rename and close within one JS turn, before the 400 ms persistence timer.
   await ev("document.querySelector('.cell .session-name-button').click()")
   await until("!!document.querySelector('.session-rename')")

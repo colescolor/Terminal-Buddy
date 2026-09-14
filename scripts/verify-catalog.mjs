@@ -17,11 +17,15 @@ const write = (dir, name, rows) => {
 }
 const row = (timestamp, text) => ({ type: 'response_item', timestamp, payload: { type: 'message', role: 'user', content: [{ type: 'input_text', text }] } })
 const meta = id => ({ type: 'session_meta', timestamp: '2026-01-01T00:00:00Z', payload: { id, cwd: root } })
+// Stands in for Codex's local name store, which needs the real CLI.
+const codexNames = new Map()
 const module = { exports: {} }
 vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../src/main/catalog.ts', import.meta.url), 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
 }).outputText, { module, exports: module.exports, Buffer, process: { env: { CODEX_HOME: config, CLAUDE_CONFIG_DIR: claude } },
-  require: name => name === 'node:os' ? { homedir: () => root } : require(name) })
+  require: name => name === 'node:os' ? { homedir: () => root }
+    : name === './codex-chat-names' ? { readCodexChatNames: async () => new Map(codexNames), renameCodexChat: async (_dir, id, title) => { codexNames.set(id, title) } }
+    : require(name) })
 try {
   const modern = write(join(config, 'sessions', '2026', '01', '01'), 'modern', [meta('modern'), row('2026-02-03T12:00:00Z', 'Modern message')])
   const older = write(join(claude, 'projects', 'project'), 'older', [

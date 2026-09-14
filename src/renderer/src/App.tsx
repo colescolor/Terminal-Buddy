@@ -131,9 +131,10 @@ export default function App(): React.JSX.Element {
     const offFeed = window.buddy.feed.onEvents((id, events) =>
       useStore.getState().addFeedEvents(id, events)
     )
-    const offAgent = window.buddy.feed.onAgent((id, agent) =>
+    const offAgent = window.buddy.feed.onAgent((id, agent, resume) => {
       useStore.setState((s) => ({ agents: { ...s.agents, [id]: agent } }))
-    )
+      if (resume) { useStore.getState().patchSession(id, { resume }); useStore.getState().persist() }
+    })
     const offNew = window.buddy.app.onNewTerminal(() => {
       useStore.getState().setNewSessionOpen(true)
     })

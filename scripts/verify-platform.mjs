@@ -72,7 +72,7 @@ for (const platform of ['win32', 'darwin']) {
   })
   const manager = new PtyManager([{ id: 'shell', path: '/test/shell', label: 'Test shell', args: [] }])
   const session = manager.create({})
-  assert.equal(options.useConpty, platform === 'win32' ? true : undefined)
+  assert.equal(options.useConptyDll, platform === 'win32' ? true : undefined)
   manager.kill(session.id)
 }
 const { PtyManager } = load('src/main/pty.ts', 'darwin', {

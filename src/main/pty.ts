@@ -91,6 +91,11 @@ export class PtyManager {
     // Electron leaks these into children and they confuse CLIs.
     delete env.ELECTRON_RUN_AS_NODE
     delete env.ELECTRON_NO_ATTACH_CONSOLE
+    // Launching Buddy from a Claude Code session leaks its per-session markers;
+    // a claude started in a tab would think it's a nested child and stop saving transcripts.
+    for (const k of ['CLAUDECODE', 'CLAUDE_CODE_CHILD_SESSION', 'CLAUDE_CODE_ENTRYPOINT', 'CLAUDE_CODE_EXECPATH',
+      'CLAUDE_CODE_SESSION_ID', 'CLAUDE_CODE_BRIDGE_SESSION_ID', 'CLAUDE_CODE_MESSAGING_SOCKET',
+      'CLAUDE_CODE_MESSAGING_TOKEN', 'CLAUDE_PID']) delete env[k]
     // The launcher (including coding tools) may disable color for its own
     // captured output. These children are real interactive, truecolor terminals.
     delete env.NO_COLOR
@@ -131,7 +136,10 @@ export class PtyManager {
         rows: 24,
         cwd,
         env: this.buildEnv(),
-        ...(process.platform === 'win32' ? { useConpty: true } : {})
+        // Use the bundled OpenConsole/ConPTY runtime. The OS copy can predate
+        // synchronized output support, exposing a TUI's intermediate cursor
+        // positions even when the visible xterm renderer supports that mode.
+        ...(process.platform === 'win32' ? { useConptyDll: true } : {})
       })
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error)

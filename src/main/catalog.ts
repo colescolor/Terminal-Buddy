@@ -452,7 +452,7 @@ export class CatalogService {
       if (this.inFlight) await this.inFlight
       const current = this.last
       const entry = current?.chats.find(chat => chat.agent === agent && chat.id === id)
-      if (!current || !entry) throw Error('This chat is no longer in the catalog. Rescan and try again.')
+      if (!current || !entry) throw Error('This chat has no saved messages yet, or is no longer in the catalog.')
       // The conversation is renamed first: if that fails nothing has changed yet,
       // so the name never disagrees with what the agent will show.
       await this.writeChatTitle(entry, title.trim())

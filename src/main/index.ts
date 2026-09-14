@@ -417,6 +417,8 @@ function registerIpc(): void {
   ipcMain.handle('catalog:refresh', async (): Promise<Catalog> => withJumpList(catalog!.scan(projectRoots())))
   ipcMain.handle('catalog:rename', async (event, agent: string, id: string, title: string): Promise<Catalog> => {
     workspaceFor(event.sender)
+    // A chat renamed from its tab may have started after the last scan.
+    if (!catalog!.cached?.chats.some(c => c.agent === agent && c.id === id)) await catalog!.scan(projectRoots())
     const result = await catalog!.renameChat(agent, id, title)
     sendToRenderer('catalog:renamed', result, agent, id, title.trim())
     return result
@@ -493,7 +495,17 @@ function registerIpc(): void {
 
   feeds = new FeedService(
     (sessionId, events) => sendToSession(sessionId, 'feed:events', sessionId, events),
-    (sessionId, agent) => sendToSession(sessionId, 'feed:agent', sessionId, agent)
+    (sessionId, agent, file) => {
+      // A chat Buddy did not launch with a known ID (typed `claude`, a folder-only
+      // reopen, a new Codex chat) links to the transcript it is writing, so the next
+      // launch resumes it instead of opening a bare shell.
+      // ponytail: discovery picks the newest unclaimed transcript in the folder, so a
+      // concurrent chat outside Buddy can be linked instead; Link a chat corrects that.
+      const current = ptys.describe(sessionId)?.session
+      const id = file && /([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}).jsonl$/i.exec(file)?.[1]
+      const resume = agent && file && id && current && !current.resume ? ptys.link(sessionId, { agent, id, path: file }, current.cwd).resume : undefined
+      sendToSession(sessionId, 'feed:agent', sessionId, agent, resume)
+    }
   )
   ipcMain.on('feed:attach', (e, sessionId: string, cwd: string, source?: FeedSource) => { if (ownsSession(e.sender, sessionId) && !ptys.describe(sessionId)?.session.assistantId) feeds?.attach(sessionId, cwd, source) })
   ipcMain.on('feed:detach', (e, sessionId: string) => { if (ownsSession(e.sender, sessionId)) feeds?.detach(sessionId) })

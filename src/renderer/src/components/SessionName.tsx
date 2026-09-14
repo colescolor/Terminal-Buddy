@@ -2,12 +2,19 @@ import { useRef, useState } from 'react'
 import { useStore, type Session } from '../store/useStore'
 import { focus } from '../lib/terminals'
 
-/** A local, persisted workspace label; never edits an agent's transcript. */
+/** A persisted workspace label. On a tab linked to a saved chat it names that chat too. */
 export default function SessionName({ session }: { session: Session }): React.JSX.Element {
   const [editing, setEditing] = useState(false)
   const cancelled = useRef(false)
   const finish = (value: string): void => {
-    if (!cancelled.current) useStore.getState().renameSession(session.id, value)
+    const title = value.trim().slice(0, 100)
+    if (!cancelled.current && title && title !== session.title) {
+      useStore.getState().renameSession(session.id, title)
+      // Same name in Saved chats, the agent's own resume picker, and Markdown exports.
+      const resume = session.resume
+      if (resume) void window.buddy.catalog.rename(resume.agent, resume.id, title)
+        .catch((e) => useStore.getState().notify(`Tab renamed, but the saved chat kept its name: ${(e as Error).message}`))
+    }
     setEditing(false)
     requestAnimationFrame(() => focus(session.id))
   }
@@ -22,7 +29,7 @@ export default function SessionName({ session }: { session: Session }): React.JS
           if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); e.currentTarget.blur() }
           if (e.key === 'Escape') { e.preventDefault(); cancelled.current = true; e.currentTarget.blur() }
         }}
-      /> : <button className="session-name-button" title="Rename terminal label. To name the saved conversation, use Catalog → Chats → Rename chat or /rename in the chat." onClick={(e) => {
+      /> : <button className="session-name-button" title="Rename this tab. If it's linked to a chat, the saved chat gets the same name." onClick={(e) => {
         e.stopPropagation(); cancelled.current = false; setEditing(true)
       }}><span>{session.title}</span><span className="rename-pencil" aria-hidden="true">✎</span></button>}
     </span>

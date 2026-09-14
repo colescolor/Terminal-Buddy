@@ -6,6 +6,7 @@ import type {
   FeedSource,
   PersistedSession,
   RestoreItem,
+  ResumeRef,
   IntegrationStatus,
   OpResult,
   ScanProgress,
@@ -121,7 +122,7 @@ const api = {
     attach: (sessionId: string, cwd: string, source?: FeedSource): void => ipcRenderer.send('feed:attach', sessionId, cwd, source),
     detach: (sessionId: string): void => ipcRenderer.send('feed:detach', sessionId),
     onEvents: (cb: (sessionId: string, events: FeedEvent[]) => void): Unsub => on('feed:events', cb),
-    onAgent: (cb: (sessionId: string, agent: 'claude' | 'codex' | null) => void): Unsub =>
+    onAgent: (cb: (sessionId: string, agent: 'claude' | 'codex' | null, resume?: ResumeRef) => void): Unsub =>
       on('feed:agent', cb)
   },
 

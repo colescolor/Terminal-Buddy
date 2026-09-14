@@ -97,7 +97,7 @@ export class FeedService {
 
   constructor(
     private emit: (sessionId: string, events: FeedEvent[]) => void,
-    private onAgent: (sessionId: string, agent: Agent | null) => void
+    private onAgent: (sessionId: string, agent: Agent | null, file?: string) => void
   ) {}
 
   /**
@@ -200,7 +200,7 @@ export class FeedService {
         a.file = found.file
         a.agent = found.agent
         a.offset = 0 // read from the top so a resumed chat shows its history
-        this.onAgent(a.sessionId, found.agent)
+        this.onAgent(a.sessionId, found.agent, found.file)
       }
       try {
         const size = statSync(a.file).size
