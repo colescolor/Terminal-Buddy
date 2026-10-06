@@ -100,6 +100,20 @@ try {
   }
   await sleep(2500)
 
+  // One choice, several terminals: the count picker opens a whole set at once.
+  const baseline = await ev(`document.querySelectorAll('.tab').length`)
+  await ev(`document.querySelector('.tab-new').click()`)
+  for (let i = 0; i < 60; i++) {
+    if (await ev(`!!document.querySelector('[data-new-kind="shell"]:not(:disabled)')`)) break
+    await sleep(50)
+  }
+  await ev(`document.querySelector('[data-new-count="3"]').click()`)
+  await ev(`document.querySelector('[data-new-kind="shell"]').click()`)
+  await sleep(2500)
+  const batched = await ev(`document.querySelectorAll('.tab').length`)
+  check('one choice opens the requested number of terminals', batched === baseline + 3, `${batched - baseline} opened`)
+  check('opening several switches to grid so they are all visible', await ev(`!!document.querySelector('.area-grid')`))
+
   const start = await ev(`document.querySelectorAll('.tab').length`)
   for (let i = start; i < WANT; i++) {
     await newTerminal()

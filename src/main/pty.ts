@@ -59,12 +59,12 @@ export class PtyManager {
   }
 
   constructor(private shells: ShellDef[], private activity?: {
-    register(id: string, title: string, launched: boolean): void
+    register(id: string, title: string, launched: boolean, reported: boolean): void
     input(id: string, data: string): void
     output(id: string): void
     exit(id: string): void
     remove(id: string): void
-  }) {}
+  }, private hooks?: { inject(command: string, sessionId: string, shellId: string): string | null }) {}
 
   setTarget(wc: WebContents | null): void {
     this.target = wc
@@ -127,6 +127,8 @@ export class PtyManager {
       resume = { agent: 'claude', id: chatId, path: join(homedir(), '.claude', 'projects', cwd.replace(/[^A-Za-z0-9]/g, '-'), chatId + '.jsonl') }
       command = `claude --session-id ${chatId}`
     }
+    const hooked = command ? this.hooks?.inject(command, id, shell.id) : null
+    if (hooked) command = hooked
 
     let pty: IPty
     try {
@@ -154,7 +156,8 @@ export class PtyManager {
       shellLabel: shell.label,
       title: spec.title || basename(cwd),
       pid: pty.pid,
-      resume
+      resume,
+      hooks: !!hooked
     }
 
     const screen = new HeadlessTerminal({ cols: 80, rows: 24, scrollback: this.scrollback, scrollOnEraseInDisplay: true, allowProposedApi: true })
@@ -176,7 +179,7 @@ export class PtyManager {
       pendingCommand: command ?? null
     }
     this.entries.set(id, entry)
-    this.activity?.register(id, info.title, !!spec.initialCommand)
+    this.activity?.register(id, info.title, !!spec.initialCommand, !!hooked)
 
     pty.onData((data) => {
       this.activity?.output(id)

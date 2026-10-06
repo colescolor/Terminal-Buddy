@@ -2,7 +2,7 @@ import { createReadStream, existsSync, statSync } from 'node:fs'
 import { readdir, stat } from 'node:fs/promises'
 import { join, basename } from 'node:path'
 import { homedir } from 'node:os'
-import type { Agent, FeedEvent, FeedSource } from '@shared/types'
+import type { Agent, AgentState, FeedEvent, FeedSource } from '@shared/types'
 
 /**
  * Turns a running agent into a readable conversation.
@@ -29,6 +29,8 @@ interface Attached {
   agent: Agent | null
   cwd: string
   since: number
+  /** Turn boundaries before this are history being replayed, not live state. */
+  attachedAt: number
   file: string | null
   offset: number
   seq: number
@@ -97,7 +99,8 @@ export class FeedService {
 
   constructor(
     private emit: (sessionId: string, events: FeedEvent[]) => void,
-    private onAgent: (sessionId: string, agent: Agent | null, file?: string) => void
+    private onAgent: (sessionId: string, agent: Agent | null, file?: string) => void,
+    private onState: (sessionId: string, state: AgentState, message?: string) => void = () => {}
   ) {}
 
   /**
@@ -112,6 +115,7 @@ export class FeedService {
       agent: source?.agent ?? null,
       cwd,
       since: Date.now() - 15_000,
+      attachedAt: Date.now(),
       file: source?.path ?? null,
       offset: 0,
       seq: 0,
@@ -265,7 +269,11 @@ export class FeedService {
         }
       } else {
         const p = (d.payload ?? {}) as Record<string, unknown>
-        if (d.type === 'event_msg' && typeof p.message === 'string') {
+        // Codex marks turn boundaries in its rollout, which is as good as a hook.
+        if (d.type === 'event_msg' && ts >= a.attachedAt && (p.type === 'task_started' || p.type === 'task_complete')) {
+          const message = typeof p.last_agent_message === 'string' && p.last_agent_message ? p.last_agent_message.slice(0, 300) : undefined
+          this.onState(a.sessionId, p.type === 'task_started' ? 'working' : 'done', message)
+        } else if (d.type === 'event_msg' && typeof p.message === 'string') {
           if (p.type === 'user_message') push({ role: 'user', text: p.message.trim() })
           else if (p.type === 'agent_message') push({ role: 'assistant', text: p.message.trim() })
         } else if (

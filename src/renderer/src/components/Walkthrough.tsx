@@ -52,6 +52,9 @@ export default function Walkthrough(): React.JSX.Element {
       <h2 ref={heading} tabIndex={-1} id="walkthrough-title">{current.title}</h2>
       <p>{current.text}</p><p className="walkthrough-tip">{current.tip}</p>
       {error && <p role="alert">{error}</p>}
+      {step === 0 && <button className="btn primary setup-entry" data-tour-beginner disabled={saving}
+        onClick={() => void finish().then(() => useStore.setState({ setupOpen: true }))}>
+        <strong>I’m brand new to this</strong><span>Walk me through installing Claude Code and making my accounts</span></button>}
       <div className="guide-actions"><span className="muted">{step + 1} / {STEPS.length}</span><span />
         <button className="btn" data-tour-back disabled={step === 0 || saving} onClick={() => setStep(step - 1)}>Back</button>
         <button className="btn primary" data-tour-next disabled={saving} onClick={() => step === STEPS.length - 1 ? void finish() : setStep(step + 1)}>{step === STEPS.length - 1 ? 'Let’s go' : 'Next →'}</button></div>

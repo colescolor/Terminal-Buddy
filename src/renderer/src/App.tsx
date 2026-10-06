@@ -17,6 +17,7 @@ import CloseSessionDialog from './components/CloseSessionDialog'
 import NewSessionDialog from './components/NewSessionDialog'
 import RestoreSessionDialog from './components/RestoreSessionDialog'
 import Walkthrough from './components/Walkthrough'
+import BeginnerSetup from './components/BeginnerSetup'
 import { connectWindowTransfers } from './lib/window-transfers'
 import LaunchRecovery from './components/LaunchRecovery'
 import MoveSessionDialog from './components/MoveSessionDialog'
@@ -49,6 +50,7 @@ export default function App(): React.JSX.Element {
   const newSessionOpen = useStore((s) => s.newSessionOpen)
   const restoreItems = useStore((s) => s.restoreItems)
   const walkthroughOpen = useStore((s) => s.walkthroughOpen)
+  const setupOpen = useStore((s) => s.setupOpen)
   const linkSessionId = useStore((s) => s.linkSessionId)
   const broadcast = useStore((s) => s.broadcast)
   const toast = useStore((s) => s.toast)
@@ -116,6 +118,10 @@ export default function App(): React.JSX.Element {
       useStore.getState().markExit(id, code)
     })
     const offInfo = window.buddy.pty.onInfo((id, patch) => useStore.getState().patchSession(id, patch))
+    const offAgentState = window.buddy.pty.onAgentState((id, agentState, agentMessage) => {
+      const s = useStore.getState().sessions.find((x) => x.id === id)
+      if (s) useStore.getState().patchSession(id, { agentState, agentMessage, attention: s.attention || agentState !== 'working' })
+    })
     const offNotification = window.buddy.app.onSelectTerminal((id) => {
       const s = useStore.getState()
       if (!s.sessions.some((x) => x.id === id)) return s.notify('That terminal has already been closed.')
@@ -142,6 +148,7 @@ export default function App(): React.JSX.Element {
       offData()
       offExit()
       offInfo()
+      offAgentState()
       offNotification()
       offNotificationError()
       offProgress()
@@ -330,6 +337,7 @@ export default function App(): React.JSX.Element {
       {newSessionOpen && !restoreItems && !walkthroughOpen && <NewSessionDialog />}
       {restoreItems && <RestoreSessionDialog items={restoreItems} />}
       {walkthroughOpen && !restoreItems && <Walkthrough />}
+      {setupOpen && !walkthroughOpen && !restoreItems && <BeginnerSetup />}
       {linkSessionId && <LinkSessionDialog sessionId={linkSessionId} />}
       {toast && <div className="toast">{toast}</div>}
     </div>

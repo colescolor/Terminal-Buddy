@@ -10,7 +10,7 @@ import {
   type Pos,
   type ShellDef,
   type Span,
-  type ResumeRef, type RestoreItem, type PersistedSession, type Workspace, type LauncherLibrary
+  type ResumeRef, type RestoreItem, type PersistedSession, type Workspace, type LauncherLibrary, type AgentState
 } from '@shared/types'
 import { pickCritter, findCritter, type Critter } from '../lib/critters'
 import { applyTheme } from '../lib/themes'
@@ -37,10 +37,17 @@ export interface Session {
   /** Legacy spatial position, kept for backwards-compatible workspace saves. */
   pos: Pos
   hasInput: boolean
+  /** The last thing you asked this agent, kept visible after it scrolls away. */
+  lastPrompt?: string
   hasConversation: boolean
   replacing: boolean
   resume?: ResumeRef
   detached?: boolean
+  /** Launched with Buddy's Claude hooks; see SessionInfo.hooks. */
+  hooks?: boolean
+  /** What the agent itself last reported, plus the question or reply that came with it. */
+  agentState?: AgentState
+  agentMessage?: string
 }
 
 /** What a session has actually been reaching for, counted from its transcript. */
@@ -69,6 +76,8 @@ interface State {
   activeId: string | null
   focusedSessionId: string | null
   walkthroughOpen: boolean
+  /** The beginner checklist: accounts, Git, Claude Code, first sign-in. */
+  setupOpen: boolean
   linkSessionId: string | null
   pendingCloseId: string | null
   layout: LayoutMode
@@ -173,6 +182,7 @@ export const useStore = create<State & Actions>((set, get) => ({
   activeId: null,
   focusedSessionId: null,
   walkthroughOpen: false,
+  setupOpen: false,
   linkSessionId: null,
   pendingCloseId: null,
   layout: 'tabs',
@@ -455,9 +465,13 @@ export const useStore = create<State & Actions>((set, get) => ({
       }
       const toolList = [...stats.values()].sort((a, b) => b.lastAt - a.lastAt).slice(0, 8)
 
+      // Claude files tool results and slash-command plumbing as user turns too;
+      // those are tagged blocks, not something you typed.
+      const asked = [...fresh].reverse().find((e) => e.role === 'user' && !e.text.startsWith('<'))
+
       return { feeds: { ...s.feeds, [id]: next }, toolStats: { ...s.toolStats, [id]: toolList },
         sessions: s.sessions.map((x) => x.id === id && events.some((e) => e.role === 'user' || e.role === 'assistant')
-          ? { ...x, hasConversation: true } : x) }
+          ? { ...x, hasConversation: true, lastPrompt: asked?.text ?? x.lastPrompt } : x) }
     })
   },
 
@@ -529,7 +543,8 @@ export const useStore = create<State & Actions>((set, get) => ({
       // A plain shell also emits output and then goes quiet. Flag only an
       // identified built-in agent or an explicitly launched custom assistant.
       // Latch until an explicit look/input. Further output cannot dismiss it.
-      return { ...s, busy: false, attention: s.attention || (s.unseen && (!!s.assistantId || !!get().agents[s.id])) }
+      // A hooked Claude reports its own state, so its silence means nothing.
+      return { ...s, busy: false, attention: s.attention || (!s.hooks && s.unseen && (!!s.assistantId || !!get().agents[s.id])) }
     })
     if (changed) set({ sessions: next })
   },
