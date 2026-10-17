@@ -9,6 +9,8 @@
 
 ## Why
 
+Future paid-edition development is isolated and disabled by default. See [BILLING_SETUP.md](BILLING_SETUP.md), [LICENSE_TRANSITION.md](LICENSE_TRANSITION.md), and [PRIVACY_BILLING_DRAFT.md](PRIVACY_BILLING_DRAFT.md). Version 0.2.0-beta.1 in this branch is a local test build, not an announced commercial release. Existing free releases and their notices are unchanged.
+
 Running several coding agents at once means keeping track of their terminals, projects, and questions. Terminal Buddy makes those terminals easy to name, recognize, and organize.
 
 Terminal Buddy puts the **live terminal first**, including trust prompts, approval menus, errors, and slash commands. The terminal is the only place to type or paste dictation; Enter, arrows, Escape, and Ctrl+C go directly to the running program. Nothing automatically answers approval questions.
@@ -30,6 +32,8 @@ It is a personal tool, published in case it's useful. No telemetry, no account, 
 Fresh launches, new windows, **Open something else…** in recovery, and every **+** open a chooser without creating a terminal. Choose **Pick a chat** to browse saved conversations, **Start a new chat** to choose Claude, Codex, or a configured assistant, **Open folder…** to select a folder and immediately launch its terminal, or **Start a base terminal** to launch a plain terminal. Expand **Recent folders, pinned chats & presets** for shortcuts. Pin or unpin conversations in the catalog with **☆ Pin**; pinned chats validate their saved history before reopening. Favorites and recent folders are shared across windows and saved for the next launch. Each fresh chooser starts in your home directory. Selecting **Open** in the folder picker opens a plain terminal in that folder immediately; cancelling opens nothing. Recent-folder shortcuts still select the folder for a new chat. The keyboard shortcut, tray action, and command palette use the same chooser. Only an explicit duplicate or saved-chat resume keeps the original folder.
 
 Each instance shows the agent's native terminal output. Terminal Buddy enables truecolor for its child terminals, rather than inheriting a launcher's `NO_COLOR` setting. Colors come from the running program and the selected terminal theme; output is not rewritten into chat bubbles.
+
+Terminal background, foreground, and cursor-color queries are answered by the main process using the selected theme, including before a view attaches and while a terminal is popped out. This fixes missing background-color replies that can leave Codex's shaded input area looking like plain text.
 
 A colored header reports **Output active**, **Opening**, **Quiet**, **Take a look**, or **Exited**. These describe observed activity, not confirmed agent completion. There is no separate composer or Send button. Pasted text uses the terminal's paste handling, including bracketed paste when enabled by the running program; Terminal Buddy does not append Enter. Multiline editing and menu behavior belong to the shell or agent.
 
@@ -138,7 +142,9 @@ And under **Settings → Taskbar and tray**: the notification-area icon, minimis
 
 ## Install
 
-Grab the installer or the portable `.exe` from [Releases](../../releases), or build it yourself:
+Terminal Buddy is free to use under the MIT license. Download the Windows x64 installer or portable `.exe` from [Releases](../../releases) when a release is available. The downloaded app includes its runtime: users do not need Node.js or developer tools. Install and sign in to coding assistants separately; those services have their own terms and pricing.
+
+To build it yourself:
 
 ```bash
 git clone <this repo>
@@ -148,9 +154,33 @@ npm run dev          # run it
 npm run dist         # build installer + portable into release/
 ```
 
-Requires Node 18+. **No C++ toolchain needed** — the PTY layer ships prebuilt binaries.
+Development builds use Node.js 22. **No C++ toolchain needed** — the PTY layer ships prebuilt binaries.
 
 The installer is per-user, needs no admin rights, and adds Start menu and desktop shortcuts. To get it onto the taskbar, launch it once, then right-click its taskbar button → **Pin to taskbar**. (Windows deliberately blocks apps from pinning themselves.)
+
+### Downloads for a website
+
+On Windows, run `npm ci`, then `npm run dist:website`. This builds the current version without publishing it and prepares **only the public download files** in `release/website-downloads/`:
+
+- `Terminal-Buddy-Setup.exe` — the recommended installer.
+- `Terminal-Buddy-Portable.exe` — runs without installation; preferences still use the Windows user profile.
+- `manifest.json` — version, architecture, file sizes, and SHA-256 hashes.
+- `SHA256SUMS.txt`, `LICENSE.txt`, and `RELEASE-NOTES.md`.
+
+Upload that folder's contents to your website's `/downloads/` directory. Link the main button to `/downloads/Terminal-Buddy-Setup.exe` and an optional portable link to `/downloads/Terminal-Buddy-Portable.exe`. Serve executable files as `application/octet-stream` with an attachment filename; make sure your site's fallback routing does not return HTML for these URLs. Replace the files together when updating and configure the host to revalidate these stable URLs so visitors do not get a cached older build. Do not upload the entire `release/` directory: it can contain local diagnostic files or profile backups.
+
+Alternatively, keep the files on GitHub Releases. After this workflow is committed and pushed, **Actions → Windows downloads → Run workflow** creates a downloadable artifact. Pushing a version tag matching `package.json` (for example, `v0.1.18`) also creates a **draft** release after the package smoke test passes. Review and publish the draft to make it downloadable. The repository/release must be public for downloads without a GitHub login.
+
+Once a public, non-prerelease release containing these assets is published, the website can use these stable URLs:
+
+```html
+<a href="https://github.com/colenew1/Terminal-Buddy/releases/latest/download/Terminal-Buddy-Setup.exe">Download for Windows — Free</a>
+<a href="https://github.com/colenew1/Terminal-Buddy/releases/latest/download/Terminal-Buddy-Portable.exe">Portable version</a>
+```
+
+These URLs are a publishing target, not a claim that a release is currently live. GitHub documents the [latest-release asset URL format](https://docs.github.com/en/repositories/releasing-projects-on-github/linking-to-releases). Keep the asset names unchanged across versions. If a newer release only contains macOS assets, use a version-specific Windows release link instead of `latest`.
+
+The default local build is unsigned and Windows may show an unknown-publisher warning. A trusted Windows signing identity can be configured through [electron-builder code signing](https://www.electron.build/v26/docs/features/code-signing/) without adding a fee or activation requirement to the app. Download packaging does not add an in-app automatic updater.
 
 After first launch, open **Settings (`Ctrl+,`) → Windows integration** and install the context menu and the `buddy` command.
 
@@ -338,6 +368,8 @@ Use the update method matching your original installation; see the [official Cod
 
 ### Building for macOS
 
+See [MAC_RELEASE.md](MAC_RELEASE.md) for the current release checklist, architecture-specific download preparation and signing requirements. The current Electron runtime requires macOS 13 or newer.
+
 On a Mac, use Node.js 22 and install dependencies there (do not copy `node_modules` from Windows). Login shells load the Mac user's shell configuration, including PATH setup for Homebrew, npm, and version managers. Finder/Dock launches fall back to the account's configured shell when `SHELL` is missing.
 
 ```sh
@@ -347,7 +379,7 @@ npm run test:platform
 npm run dist:mac -- --publish never
 ```
 
-This creates a DMG and ZIP in `release/` for the Mac's processor. Apple Silicon uses `arm64`; Intel uses `x64`. Build on each corresponding architecture so the native PTY dependency matches. The **macOS builds** GitHub Actions workflow does this on both architectures, runs the platform/unit checks, and tests each packaged app by opening a shell, detecting a mock agent, and exercising clipboard/interrupt keys. Download its build artifacts after a successful run. These test artifacts are not Developer ID signed or notarized; public distribution needs Apple signing credentials and notarization configured with [electron-builder](https://www.electron.build/code-signing-mac.html).
+This creates a DMG and ZIP in `release/` for the Mac's processor. Apple Silicon uses `arm64`; Intel uses `x64`. Build on each corresponding architecture so the native PTY dependency matches. The **macOS builds** GitHub Actions workflow does this on both architectures, runs the platform/unit checks, and tests each packaged app by opening a shell, detecting a mock agent, and exercising clipboard/interrupt keys. It uses `dist:mac:beta` for explicit ad-hoc test signing, then `downloads:mac` to validate files and prepare checksummed downloads in `release/mac-downloads/<architecture>/`. Download its build artifacts after a successful run. These test artifacts are not Developer ID signed or notarized; a smooth public distribution needs Apple signing credentials and notarization configured with [electron-builder](https://www.electron.build/v26/docs/features/code-signing/).
 
 On Mac, use **Cmd+C / Cmd+V** to copy/paste and **Control+C** to interrupt. App actions accept **Cmd+Shift** (e.g. Cmd+Shift+T); **Control+Tab** changes panes. The application menu provides Quit/Hide and window actions, and clicking the Dock icon reveals a hidden window. Windows Explorer settings are hidden on Mac. To open a folder from macOS Terminal after installing the app:
 

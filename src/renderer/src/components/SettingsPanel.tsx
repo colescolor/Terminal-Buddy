@@ -6,6 +6,8 @@ import { THEMES } from '../lib/themes'
 import { CRITTER_PACKS, packById } from '../lib/critters'
 import Buddy from './Buddy'
 import AssistantSettings from './AssistantSettings'
+import AccountPanel from './AccountPanel'
+import '../account.css'
 
 export default function SettingsPanel(): React.JSX.Element {
   const settings = useStore((s) => s.settings)
@@ -54,6 +56,7 @@ export default function SettingsPanel(): React.JSX.Element {
         </div>
 
         <div className="modal-body settings">
+          <AccountPanel />
           <section>
             <h4>Getting started</h4>
             <p className="muted">A short, click-through tour of terminals, layouts, pop-outs, recovery, and optional alerts.</p>

@@ -7,6 +7,12 @@ release/
 .DS_Store
 Thumbs.db
 *.tsbuildinfo
+billing/node_modules/
+billing/.local/
+billing/public/
+artifacts/
+resources/THIRD_PARTY_LICENSES.txt
+resources/third-party-manifest.json
 
 # Local credentials and machine-specific configuration
 .env

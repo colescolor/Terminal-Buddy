@@ -1,0 +1,6 @@
+{
+  "distribution": "electron-builder nsis-3.0.4.1",
+  "source": "COPYING from downloaded builder NSIS distribution",
+  "sha256": "3c8de989f6504d52f5f8dfafedb6668cd47201f5d01f1319570727c091425dd6",
+  "scope": "NSIS core distribution; external plugin-specific licensing still requires review."
+}

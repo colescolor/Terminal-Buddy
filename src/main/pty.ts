@@ -8,6 +8,7 @@ import { resolveShell } from './shells'
 import { Terminal as HeadlessTerminal } from '@xterm/headless'
 import { SerializeAddon } from '@xterm/addon-serialize'
 import type { TerminalSnapshot } from '@shared/types'
+import type { TerminalColors } from '@shared/themes'
 
 type IPty = {
   pid: number
@@ -51,6 +52,11 @@ export class PtyManager {
   private target: WebContents | null = null
   onEvent: ((channel: string, ...args: unknown[]) => void) | null = null
   private scrollback = 5000
+  private colors = { foreground: '#ffffff', background: '#000000', cursor: '#ffffff' }
+
+  setColors(colors: Pick<TerminalColors, 'foreground' | 'background' | 'cursor'>): void {
+    this.colors = colors
+  }
 
   setScrollback(value: number): void {
     if (!Number.isFinite(value)) return
@@ -163,6 +169,22 @@ export class PtyManager {
     // One parser answers terminal queries even while a view is being attached.
     // Visible renderers suppress these replies so they cannot answer twice.
     screen.onData((data) => { try { pty.write(data) } catch { /* exited */ } })
+    // Headless xterm has no browser ColorService. Visible views suppress query
+    // replies, so answer default-color queries here, even before a view attaches.
+    // Codex uses OSC 11 to choose the background of its full-width input area.
+    const colorKeys = ['foreground', 'background', 'cursor'] as const
+    for (const code of [10, 11, 12]) {
+      screen.parser.registerOscHandler(code, (data) => {
+        const requests = data.split(';')
+        for (let i = 0; i < requests.length && code + i <= 12; i++) {
+          if (requests[i] !== '?') continue
+          const color = this.colors[colorKeys[code + i - 10]]
+          const rgb = color.slice(1).match(/../g)!.map((part) => part + part).join('/')
+          try { pty.write(`\x1b]${code + i};rgb:${rgb}\x1b\\`) } catch { /* exited */ }
+        }
+        return true
+      })
+    }
     const entry: Entry = {
       screen, serializer, seq: 0,
       id,

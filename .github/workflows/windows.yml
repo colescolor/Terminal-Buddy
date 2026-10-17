@@ -1,0 +1,68 @@
+name: Windows downloads
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Verify release tag matches app version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          if ($env:RELEASE_TAG -ne "v$version") { throw "Release tag must match package.json version v$version" }
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test:platform
+      - run: npm run test:screen
+      - run: npm run test:downloads
+      - run: npm run dist:website
+      - name: Block unapproved future public releases
+        if: startsWith(github.ref, 'refs/tags/')
+        run: node scripts/check-commercial-release.mjs
+      - name: Test the packaged Windows app
+        run: npm run test:platform-app
+        env:
+          BUDDY_EXE: release/win-unpacked/Terminal Buddy.exe
+      - name: Test the portable download
+        run: npm run test:platform-app
+        env:
+          BUDDY_EXE: release/website-downloads/Terminal-Buddy-Portable.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Terminal-Buddy-Windows-downloads
+          path: release/website-downloads/
+          if-no-files-found: error
+
+  draft-release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Terminal-Buddy-Windows-downloads
+          path: downloads
+      - name: Create a draft release for review
+        shell: bash
+        run: |
+          gh release create "$RELEASE_TAG" downloads/* --repo "$GITHUB_REPOSITORY" --verify-tag --draft --title "Terminal Buddy $RELEASE_TAG" --notes-file downloads/RELEASE-NOTES.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}

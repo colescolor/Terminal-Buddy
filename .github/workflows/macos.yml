@@ -23,17 +23,17 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run typecheck && npm run test:platform && npm run test:settings && npm run test:alerts && npm run test:submit && npm run test:screen
-      - run: npm run dist:mac -- --${{ matrix.arch }} --publish never
+      - run: npm run typecheck && npm run test:platform && npm run test:settings && npm run test:alerts && npm run test:submit && npm run test:screen && npm run test:mac-downloads
+      # Explicit ad-hoc signing is for test betas only, not Developer ID trust.
+      - run: npm run dist:mac:beta -- --${{ matrix.arch }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - run: npm run test:platform-app && npm run test:windows && npm run test:launcher && npm run test:assistants
         env:
           BUDDY_EXE: release/mac${{ matrix.arch == 'arm64' && '-arm64' || '' }}/Terminal Buddy.app/Contents/MacOS/Terminal Buddy
+      - run: npm run downloads:mac -- --arch=${{ matrix.arch }}
       - uses: actions/upload-artifact@v4
         with:
           name: Terminal-Buddy-mac-${{ matrix.arch }}
-          path: |
-            release/*.dmg
-            release/*.zip
+          path: release/mac-downloads/${{ matrix.arch }}/
           if-no-files-found: error

@@ -1,6 +1,8 @@
 import { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme, Menu, clipboard, nativeImage, Notification } from 'electron'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { AccountService } from './account-service'
+import { readFileSync } from 'node:fs'
 import type { WebContents } from 'electron'
 import { mkdirSync, statSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
@@ -18,6 +20,7 @@ import type {
 import { validAssistantProfile, type AssistantProfile } from '@shared/types'
 import { detectShells } from './shells'
 import { PtyManager } from './pty'
+import { themeById } from '@shared/themes'
 import { CatalogService, buildMarkdown } from './catalog'
 import { loadSettings, saveSettings, loadWorkspace, saveWorkspace, loadWindowIds, saveWindowIds, cacheFile } from './store'
 import { TrayController, setTaskbarBadge, setJumpList } from './tray'
@@ -56,6 +59,7 @@ app.setName('Terminal Buddy')
 
 const shells = detectShells()
 let alertsEnabled = false
+let account: AccountService | null = null
 const activity = new TerminalActivity((alert) => {
   void showTerminalNotification(alert).catch(() => sendToSession(alert.id, 'app:notificationError', 'The system could not display a desktop notification.'))
 }, () => alertsEnabled)
@@ -281,6 +285,25 @@ function createWindow(id: string = randomUUID(), persist = true): BrowserWindow 
 /* --------------------------------------------------------------- ipc wiring */
 
 function registerIpc(): void {
+  account = new AccountService()
+  ipcMain.handle('account:status', e => { workspaceFor(e.sender); return account!.view() })
+  ipcMain.handle('account:action', async (e, action: unknown) => {
+    workspaceFor(e.sender)
+    const actions: Record<string, () => unknown> = {
+      signIn: () => account!.signIn(), startTrial: () => account!.startTrial(),
+      refresh: () => account!.refresh(), subscribe: () => account!.subscribe(true),
+      manage: () => account!.manage(), signOut: () => account!.signOut(), support: () => account!.support()
+      ,chromium: () => shell.openPath(app.isPackaged ? join(process.resourcesPath, '..', 'LICENSES.chromium.html') : join(__dirname, '../..', 'node_modules/electron/dist/LICENSES.chromium.html'))
+    }
+    if (typeof action !== 'string' || !Object.hasOwn(actions, action)) throw Error('Unknown account action.')
+    return actions[action]()
+  })
+  ipcMain.handle('account:notices', e => {
+    workspaceFor(e.sender)
+    try { return readFileSync(join(app.isPackaged ? join(process.resourcesPath, 'resources') : join(__dirname, '../..', 'resources'), 'THIRD_PARTY_LICENSES.txt'), 'utf8') }
+    catch { return 'Third-party notice generation is required before distributing this build.' }
+  })
+  void account.refresh()
   popouts.register()
   transfers.register()
   registerLauncherLibrary(workspaceFor, value => sendToRenderer('library:changed', value))
@@ -292,6 +315,7 @@ function registerIpc(): void {
 
   ipcMain.handle('pty:create', (e, spec: SessionSpec) => {
     const workspace = workspaceFor(e.sender)
+    account?.assertCanCreate()
     if (transfers.isLocked(workspace.id)) throw Error('A terminal move is finishing. Try again shortly.')
     if ([...sessionOwners.values()].filter(id => id === workspace.id).length >= 16) throw Error('16 terminals is the cap — close one first.')
     if (spec.assistantId) {
@@ -367,6 +391,7 @@ function registerIpc(): void {
       activeNotifications.clear()
     }
     ptys.setScrollback(s.scrollback)
+    ptys.setColors(themeById(s.theme).terminal)
     popouts.settingsChanged(s)
     sendToRenderer('settings:changed', s)
     tray?.enable(s.trayIcon)
@@ -588,6 +613,7 @@ if (!gotLock) {
     registerIpc()
     alertsEnabled = loadSettings().desktopNotifications
     ptys.setScrollback(loadSettings().scrollback)
+    ptys.setColors(themeById(loadSettings().theme).terminal)
     activityTimer = setInterval(() => activity.tick(), 1000)
     const reopening = loadWindowIds()
     for (const id of reopening) createWindow(id, false)

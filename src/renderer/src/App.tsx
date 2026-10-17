@@ -4,6 +4,7 @@ import TerminalArea from './components/TerminalArea'
 import Sidebar from './components/Sidebar'
 import Palette from './components/Palette'
 import SettingsPanel from './components/SettingsPanel'
+import AccountIndicator from './components/AccountIndicator'
 import { useStore } from './store/useStore'
 import { matchShortcut, matchClipboard } from './lib/shortcuts'
 import { handleClipboard } from './lib/clipboard'
@@ -286,6 +287,7 @@ export default function App(): React.JSX.Element {
       className={`app ${broadcast ? 'is-broadcast' : ''} ${settings.reduceMotion ? 'no-motion' : ''}`}
     >
       <TopBar />
+      <AccountIndicator />
       <div className="body">
         {sidebarOpen && <Sidebar />}
         <main className="main">

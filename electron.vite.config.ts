@@ -17,6 +17,16 @@ export default defineConfig({
     resolve: {
       alias: { '@shared': shared, '@': resolve(__dirname, 'src/renderer/src') }
     },
-    plugins: [react()]
+    plugins: [react(), {
+      name: 'record-renderer-runtime-dependencies',
+      generateBundle() {
+        const names = new Set<string>()
+        for (const id of this.getModuleIds()) {
+          const match = id.replaceAll('\\', '/').match(/node_modules\/((?:@[^/]+\/)?[^/]+)/)
+          if (match) names.add(match[1])
+        }
+        this.emitFile({ type: 'asset', fileName: 'runtime-dependencies.json', source: JSON.stringify([...names].sort()) })
+      }
+    }]
   }
 })

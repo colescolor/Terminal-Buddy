@@ -51,6 +51,23 @@ console.log('PASS clearing the viewport preserves prior output in scrollback and
 receive('\x1b[6n');await manager.snapshot(session.id)
 assert.equal(replies.filter(value=>/^\x1b\[\d+;\d+R$/.test(value)).length,1)
 console.log('PASS the canonical parser answers terminal position queries exactly once')
+manager.setColors({ foreground: '#d5dae3', background: '#0f1115', cursor: '#6ea8fe' })
+replies.length = 0
+// Fragmented queries and both OSC terminators occur over real PTY transports.
+receive('\x1b]11;'); receive('?\x07\x1b]10;?;?;?\x1b\\')
+await manager.snapshot(session.id)
+assert.deepEqual(replies, [
+  '\x1b]11;rgb:0f0f/1111/1515\x1b\\',
+  '\x1b]10;rgb:d5d5/dada/e3e3\x1b\\',
+  '\x1b]11;rgb:0f0f/1111/1515\x1b\\',
+  '\x1b]12;rgb:6e6e/a8a8/fefe\x1b\\'
+])
+manager.setColors({ foreground: '#2b2a27', background: '#f7f6f3', cursor: '#3b6ea5' })
+replies.length = 0
+receive('\x1b]11;?\x1b\\')
+await manager.snapshot(session.id)
+assert.deepEqual(replies, ['\x1b]11;rgb:f7f7/f6f6/f3f3\x1b\\'])
+console.log('PASS background/foreground/cursor queries reply once without a view and follow theme changes')
 manager.resize(session.id,120,35)
 snapshot=await manager.snapshot(session.id);assert.equal(snapshot.cols,120);assert.equal(snapshot.rows,35)
 exited({exitCode:7});snapshot=await manager.snapshot(session.id)

@@ -1,6 +1,6 @@
 {
   "name": "terminal-buddy",
-  "version": "0.1.16",
+  "version": "0.2.0-beta.1",
   "description": "Friendly, organized terminals for your coding agents, with custom names and desktop alerts.",
   "main": "./out/main/index.js",
   "author": "Terminal Buddy contributors",
@@ -9,12 +9,18 @@
   "scripts": {
     "dev": "node scripts/dev-branding.mjs && electron-vite dev",
     "start": "electron-vite preview",
-    "build": "electron-vite build",
+    "build": "electron-vite build && node scripts/generate-third-party.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "pack:dir": "electron-vite build && electron-builder --dir",
-    "dist": "npm run icon && electron-vite build && electron-builder --win nsis portable",
-    "dist:mac": "npm run icon && electron-vite build && electron-builder --mac",
+    "pack:dir": "npm run build && electron-builder --dir --publish never",
+    "dist": "npm run icon && npm run build && electron-builder --win nsis portable --publish never",
+    "dist:mac": "npm run icon && npm run build && electron-builder --mac",
+    "dist:mac:beta": "npm run dist:mac -- --config.mac.identity=- --config.mac.hardenedRuntime=false --publish never",
+    "downloads:mac": "node scripts/prepare-mac-downloads.mjs",
+    "test:mac-downloads": "node --test scripts/verify-mac-downloads.mjs",
     "dist:win": "npm run dist",
+    "dist:website": "npm run dist -- --publish never && npm run downloads:prepare",
+    "downloads:prepare": "node scripts/prepare-windows-downloads.mjs",
+    "test:downloads": "node --test scripts/verify-windows-downloads.mjs",
     "test:platform": "node scripts/verify-platform.mjs",
     "test:platform-app": "node scripts/verify-platform-app.mjs",
     "test:assistants": "node scripts/verify-assistants.mjs",
@@ -38,7 +44,10 @@
     "test:registry": "node scripts/verify-registry.mjs",
     "test:feed": "node scripts/verify-feed.mjs",
     "test:native-paste": "node scripts/verify-native-paste.mjs",
-    "test:terminal-input": "node scripts/verify-terminal-input.mjs"
+    "test:terminal-input": "node scripts/verify-terminal-input.mjs",
+    "test:account": "node --test scripts/verify-account-access.mjs",
+    "test:billing": "npm --prefix billing test",
+    "billing:preview": "npm --prefix billing run dev"
   },
   "dependencies": {
     "@lydell/node-pty": "1.2.0-beta.15",

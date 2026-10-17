@@ -1,0 +1,2 @@
+# Keep copied upstream notices byte-for-byte, including their original line endings.
+resources/third-party/* -text

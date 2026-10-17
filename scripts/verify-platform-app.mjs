@@ -1,6 +1,6 @@
 /** Real shell/keyboard/process-probe smoke test, also run against each Mac package. */
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -102,9 +102,18 @@ try {
   if (originalClipboard !== undefined) {
     try { await ev(`window.buddy.clipboard.write(${JSON.stringify(originalClipboard)})`) } catch {}
   }
+  // A portable EXE is a launcher; killing it alone leaves the extracted app and
+  // its terminals alive. Ask Electron to quit, then wait for the launcher too.
+  if (ws?.readyState === WebSocket.OPEN) await send('Browser.close').catch(() => {})
   ws?.close()
   for (const p of pending.values()) clearTimeout(p.timer)
-  child.kill(); await sleep(1000)
+  for (let n = 0; n < 50 && child.exitCode === null && child.signalCode === null; n++) await sleep(100)
+  if (child.exitCode === null && child.signalCode === null) {
+    if (process.platform === 'win32') {
+      await new Promise(resolve => execFile('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true }, resolve))
+    } else child.kill()
+  }
+  await sleep(1000)
   // Only remove the exact temporary workspace created by this harness.
   const resolved = realpathSync(root)
   assert.ok(resolved.startsWith(realpathSync(tmpdir()) + sep) && resolve(root) === resolved)

@@ -27,6 +27,11 @@ function on<A extends unknown[]>(channel: string, cb: (...args: A) => void): Uns
 }
 
 const api = {
+  account: {
+    status: (): Promise<import('@shared/account').AccountView> => ipcRenderer.invoke('account:status'),
+    action: (action: string): Promise<import('@shared/account').AccountView | undefined> => ipcRenderer.invoke('account:action', action),
+    notices: (): Promise<string> => ipcRenderer.invoke('account:notices')
+  },
   platform: process.platform,
   popout: {
     attention: (id: string, value: boolean): void => ipcRenderer.send('popout:attention', id, value),

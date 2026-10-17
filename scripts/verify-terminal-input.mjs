@@ -16,7 +16,8 @@ const mock = join(root, 'mock.cjs')
 writeFileSync(mock, `process.stdin.setRawMode(true);process.stdin.resume();console.log('ARGS:'+process.argv.slice(2).join(' '));
 for(let i=0;i<160;i++)console.log('SCROLL_HISTORY_'+i);
 process.stdout.write('\\x1b[2J\\x1b[HCURRENT_SCREEN\\r\\n\\x1b[?1000h\\x1b[?1006h\\x1b[?2004h');
-process.stdin.on('data',data=>console.log('INPUT:'+data.toString('hex')));`)
+process.stdin.on('data',data=>{console.log('INPUT:'+data.toString('hex'));if(data.toString()==='QUERY_COLOR')process.stdout.write('\\x1b]11;?\\x07')});
+process.stdout.write('\\x1b]11;?\\x07');`)
 const launcher = join(bin, process.platform === 'win32' ? 'codex.cmd' : 'codex')
 writeFileSync(launcher, process.platform === 'win32' ? `@"${process.execPath}" "${mock}" %*\r\n` : `#!/bin/sh\nexec "${process.execPath}" "${mock}" "$@"\n`)
 if (process.platform !== 'win32') chmodSync(launcher, 0o755)
@@ -76,6 +77,11 @@ try {
   await click(c,'.tab-new');await click(c,'[data-new-chat]');await click(c,'[data-new-kind="codex"]')
   await until(()=>c.ev(`Object.values(window.__output).some(s=>s.includes('CURRENT_SCREEN'))`),'mock ready')
   const id=await c.ev(`document.querySelector('.cell.is-active').dataset.sessionId`)
+  const colorReply = 'INPUT:' + Buffer.from('\x1b]11;rgb:0f0f/1111/1515\x1b\\').toString('hex')
+  await until(()=>c.ev(`window.__output[${JSON.stringify(id)}].includes(${JSON.stringify(colorReply)})`),'terminal background reply')
+  await sleep(200)
+  assert.equal(await c.ev(`window.__output[${JSON.stringify(id)}].split(${JSON.stringify(colorReply)}).length-1`),1)
+  console.log('PASS real Windows/POSIX PTY delivers the selected background color exactly once')
   assert.ok((await c.ev(`window.__output[${JSON.stringify(id)}]`)).includes('ARGS:--no-alt-screen'))
   const selector='.cell.is-active .xterm'
   await sleep(200)
@@ -103,6 +109,11 @@ try {
   await c.ev(`window.buddy.popout.open(${JSON.stringify(id)})`)
   const pop=await connect(p=>p.type==='page'&&p.url.includes('popout='))
   await until(()=>pop.ev(`!!document.querySelector('.xterm-helper-textarea')`),'popout ready')
+  await pop.ev(`window.buddy.pty.write(${JSON.stringify(id)},'QUERY_COLOR')`)
+  await until(()=>c.ev(`window.__output[${JSON.stringify(id)}].split(${JSON.stringify(colorReply)}).length-1===2`),'detached color reply')
+  await sleep(200)
+  assert.equal(await c.ev(`window.__output[${JSON.stringify(id)}].split(${JSON.stringify(colorReply)}).length-1`),2)
+  console.log('PASS a popped-out terminal still receives one color reply without duplicate renderer input')
   await pasteKey(pop,'detached dictation')
   await until(()=>c.ev(`window.__output[${JSON.stringify(id)}].includes(${JSON.stringify(Buffer.from('detached dictation').toString('hex'))})`),'popout paste')
   const popTop=await sliderTop(pop,'.xterm')

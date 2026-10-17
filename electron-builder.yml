@@ -9,6 +9,7 @@ directories:
 files:
   - out/**/*
   - package.json
+  - LICENSE
   - '!**/*.map'
 
 # node-pty ships a prebuilt native binding. It must stay outside the asar or
@@ -47,6 +48,7 @@ linux:
 
 mac:
   icon: build/icon.png
+  minimumSystemVersion: '13.0'
   target:
     - target: dmg
     - target: zip
