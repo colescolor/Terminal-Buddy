@@ -9,7 +9,7 @@ export function service({db,stripe,verifyUser,privateKey,origin,now=Date.now,off
  const sync=async(account,tx)=>{
   const b=account.billing
   if(b.customerId){const snapshot=await stripe.snapshot(b.customerId);if(snapshot.duplicate)fail('Multiple subscriptions need support review.',409)
-   account.billing={...b,...snapshot,confirming:snapshot.status==='incomplete'};await saveBilling(tx,account.id,account.billing)}
+   account.billing={...b,...snapshot,syncedAt:now(),confirming:snapshot.status==='incomplete'};await saveBilling(tx,account.id,account.billing)}
   return account
  }
  const status=account=>{

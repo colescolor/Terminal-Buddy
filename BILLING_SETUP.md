@@ -4,6 +4,7 @@
 Version 0.2.0-beta.1, local branch development/paid-release-local. No push, deployment, external account creation, Stripe product/Price creation or real charge was performed. Current free edition behavior and website remain unchanged. Main app LICENSE, MIT metadata, copyright field and old release files remain unchanged. Commercial release is blocked by release-approvals.json and scripts/check-commercial-release.mjs.
 
 Backend packages are isolated in billing/package.json and lockfile: Stripe 23.0.0 (SDK stable API 2026-09-30.endive), pg 8.23.1, Supabase JS 2.118.0. PGlite 0.5.10 is local/test only. No Stripe/database/admin secret is used in Electron. Existing app dependencies were not upgraded.
+The owner has selected Netlify, Supabase, Stripe and Resend. See STACK_SETUP.md for the ordered connection checklist, SMTP email template, read-only owner dashboard and setup checks. No external service is connected yet.
 
 ## Run locally
 From this worktree root:
@@ -20,6 +21,8 @@ Open http://127.0.0.1:4318/ for the actual AccountCard component with fictional 
 cd billing
 node verify-preview.mjs
 node verify-auth-page.mjs
+node verify-owner.mjs
+node verify-deployment.mjs
 cd ..
 node scripts/verify-account-desktop.mjs
 npm run test:platform-app
@@ -31,7 +34,7 @@ For a fresh clone run npm ci at the root first. This isolated worktree currently
 Optional local desktop connection: start billing/dev.mjs, set BUDDY_BILLING_DEV_ORIGIN=http://127.0.0.1:4318 and BUDDY_BILLING_DEV_PUBLIC_KEY to billing/.local/public-key.pem contents, then start Electron with an explicit disposable --user-data-dir. Packaged apps ignore these variables. The local browser sign-in page is a labeled simulated verification flow. It never sends an email.
 
 ## Proposed hosting
-Keep terminalbuddy.to static. Use a separate approved Netlify test billing project with base directory billing, config billing/netlify.toml, build npm ci && npm run build, output public, functions functions, Node 22. Supabase supplies verified email auth plus persistent Postgres. This adds one small API and one database, not a terminal backend.
+Keep terminalbuddy.to static. Use a separate approved Netlify test billing project with base directory billing, config billing/netlify.toml, build npm ci && npm run check:setup && npm run build, output public, functions functions, Node 22. Supabase supplies verified email auth plus persistent Postgres. This adds one small API and one database, not a terminal backend.
 No host/domain/account is created here. Owner selects the real HTTPS billing origin. Never silently connect production main or add DNS records. Account pages remain noindex. Function/auth/database usage can have plan limits and cost; Stripe processing fees apply only to eventual live payments. Owner must approve plans, quotas, SMTP and spending separately.
 
 ## Environment and migrations
@@ -44,6 +47,7 @@ Copy billing/.env.example to an untracked .env and populate TEST credentials onl
 - BILLING_ORIGIN: actual HTTPS origin, no path/query/credentials.
 - ENTITLEMENT_PRIVATE_KEY: Ed25519 PKCS8 PEM, server only. Put corresponding SPKI public key into the future desktop build configuration. Local preview uses a generated ephemeral key; production needs managed secret storage, rotation and review.
 - OFFLINE_DAYS and PAST_DUE_GRACE_DAYS: proposed 7 and 3, bounded 0–7 in code; owner approval required.
+- OWNER_USER_IDS: verified Supabase user UUID allowlist, server-only. Empty disables all owner data access. Never grant owner status from an email address or browser flag.
 
 Apply billing/migrations/001_accounts.sql to an approved TEST database:
 ```powershell

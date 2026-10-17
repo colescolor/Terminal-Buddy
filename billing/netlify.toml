@@ -1,6 +1,6 @@
 # Separate, unlaunched TEST billing project. Do not replace the existing static site's config.
 [build]
-command = "npm ci && npm run build"
+command = "npm ci && npm run check:setup && npm run build"
 publish = "public"
 functions = "functions"
 [build.environment]

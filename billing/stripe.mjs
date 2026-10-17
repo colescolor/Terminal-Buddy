@@ -10,6 +10,7 @@ export function stripeGateway(env, injectedClient) {
   if(p.livemode||!p.active||p.currency!==offer.currency||p.unit_amount!==offer.amount||p.recurring?.interval!=='month'||p.recurring?.interval_count!==1)throw Error('Price must be active TEST USD 6.00/month, every one month.')
  }
  return {
+  validatePrice,
   async customer(account){return stripe.customers.create({email:account.email,metadata:{account_id:account.id}},{idempotencyKey:'buddy-customer-'+account.id})},
   async snapshot(customerId){
    const subscriptions={data:[]},invoices={data:[]}

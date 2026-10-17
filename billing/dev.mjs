@@ -5,14 +5,20 @@ import {build} from 'esbuild'
 import {fixture} from './tests/fixture.mjs'
 import {handler} from './http.mjs'
 import {service} from './service.mjs'
+import {ownerService} from './admin.mjs'
+import {seedOwnerPreview} from './owner-fixtures.mjs'
+import {USER} from './tests/fixture.mjs'
 if(process.env.NETLIFY||process.env.NODE_ENV==='production')throw Error('Local fixtures are forbidden in deployed environments.')
 await mkdir('.local',{recursive:true})
 await build({entryPoints:['preview.tsx'],outfile:'.local/preview.js',bundle:true,platform:'browser',format:'iife',jsx:'automatic',tsconfigRaw:{compilerOptions:{jsx:'react-jsx'}}})
+await build({entryPoints:['admin-preview.mjs'],outfile:'.local/admin-preview.js',bundle:true,platform:'browser',format:'esm'})
 const f=await fixture('.local/database')
+await seedOwnerPreview(f.db)
 f.api=service({...f.options,now:Date.now})
 const publicKey=f.keys.publicKey.export({type:'spki',format:'pem'})
 await writeFile('.local/public-key.pem',publicKey)
-const api=handler(f.api,{origin:'http://127.0.0.1:4318'})
+const owner=ownerService({db:f.db,verifyUser:f.options.verifyUser,owners:new Set([USER])})
+const api=handler(f.api,{origin:'http://127.0.0.1:4318'},owner)
 const server=createServer(async(req,res)=>{
  try{
   const url=new URL(req.url,'http://127.0.0.1:4318')
@@ -23,6 +29,11 @@ const server=createServer(async(req,res)=>{
    res.writeHead(r.status,Object.fromEntries(r.headers));return res.end(await r.text())
   }
   const files={'/':['preview.html','text/html'],'/preview/':['preview.html','text/html'],'/preview.js':['.local/preview.js','text/javascript'],'/preview.css':['.local/preview.css','text/css'],'/preview-shell.css':['preview-shell.css','text/css']}
+  files['/admin.css']=['admin.css','text/css'];files['/admin-preview.js']=['.local/admin-preview.js','text/javascript']
+  if(url.pathname==='/owner-preview/'){
+   res.writeHead(200,{'Content-Type':'text/html','Cache-Control':'no-store','X-Robots-Tag':'noindex','Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"})
+   return res.end((await readFile('admin.html','utf8')).replace('/admin.js','/admin-preview.js'))
+  }
   if(url.pathname==='/account/'){
    res.writeHead(200,{'Content-Type':'text/html','Cache-Control':'no-store','Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'"})
    return res.end('<!doctype html><html><head><link rel="stylesheet" href="/preview-shell.css"><script src="/local-connect.js" defer></script></head><body><main><h1>Local simulated email verification</h1><p>Fictional account alex@example.invalid. No email or provider request is sent.</p><button class="btn" id="connect">Connect test account</button><p id="status"></p></main></body></html>')

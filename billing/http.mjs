@@ -1,4 +1,4 @@
-export function handler(service,publicConfig) {
+export function handler(service,publicConfig,owner) {
  return async request=>{
   const headers={'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','X-Robots-Tag':'noindex'}
   try {
@@ -12,6 +12,10 @@ export function handler(service,publicConfig) {
    if(path==='/webhook')return Response.json(await service.webhook(raw,request.headers.get('stripe-signature')),{headers})
    const body=JSON.parse(raw||'{}')
    const token=request.headers.get('authorization')?.replace(/^Bearer /,'')
+   if(path==='/admin/overview'){
+    if(!owner)return Response.json({error:'Owner dashboard is not configured.'},{status:503,headers})
+    return Response.json(await owner.overview(token,body),{headers})
+   }
    if(path==='/device/start')return Response.json(await service.deviceStart(body),{headers})
    if(path==='/device/approve')return Response.json(await service.deviceApprove(token,body),{headers})
    if(path==='/device/exchange')return Response.json(await service.deviceExchange(body),{headers})
