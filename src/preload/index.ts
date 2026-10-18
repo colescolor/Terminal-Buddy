@@ -29,6 +29,7 @@ function on<A extends unknown[]>(channel: string, cb: (...args: A) => void): Uns
 
 const api = {
   account: {
+    onChanged: (cb: (value: import('@shared/account').AccountView) => void): Unsub => on('account:changed', cb),
     status: (): Promise<import('@shared/account').AccountView> => ipcRenderer.invoke('account:status'),
     action: (action: string): Promise<import('@shared/account').AccountView | undefined> => ipcRenderer.invoke('account:action', action),
     notices: (): Promise<string> => ipcRenderer.invoke('account:notices')

@@ -38,6 +38,9 @@ test('tamper, wrong account/key and backward/forward clock changes do not grant 
  assert.equal(verifiedAccess(r,'bad key',now,now).allow,false)
  assert.equal(verifiedAccess(r,key,now-600000,now).allow,false)
  assert.equal(verifiedAccess(r,key,now+30*DAY,now).allow,false)
+ assert.equal(verifiedAccess(r,key,now,now,'terminal-buddy').allow,false)
+ assert.equal(verifiedAccess(record({issuer:'terminal-buddy'}),key,now,now).allow,false)
+ assert.equal(verifiedAccess(record({issuer:'terminal-buddy'}),key,now,now,'terminal-buddy').allow,true)
 })
 test('free edition never requires a trial; expired/signed-out gates only the new-session decision',()=>{
  assert.equal(canCreateWorkspace(false,null,'',now,now),true)

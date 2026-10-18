@@ -45,7 +45,7 @@
     "test:feed": "node scripts/verify-feed.mjs",
     "test:native-paste": "node scripts/verify-native-paste.mjs",
     "test:terminal-input": "node scripts/verify-terminal-input.mjs",
-    "test:account": "node --test scripts/verify-account-access.mjs scripts/verify-account-session.mjs",
+    "test:account": "node --test scripts/verify-account-access.mjs scripts/verify-account-session.mjs scripts/verify-account-sync.mjs",
     "test:billing": "npm --prefix billing test",
     "billing:preview": "npm --prefix billing run dev"
   },

@@ -49,9 +49,10 @@ export default function TerminalArea(): React.JSX.Element {
   useEffect(()=>{
     let active=true
     const refresh=()=>{void window.buddy.account.status().then(value=>{if(active)setAccount(value)}).catch(()=>{})}
+    const off=window.buddy.account.onChanged(value=>{if(active)setAccount(value)})
     refresh();window.addEventListener('focus',refresh)
     const timer=setInterval(refresh,3000)
-    return()=>{active=false;clearInterval(timer);window.removeEventListener('focus',refresh)}
+    return()=>{active=false;off();clearInterval(timer);window.removeEventListener('focus',refresh)}
   },[])
   const accountAction=async(action:string):Promise<void>=>{
     if(['notices','chromium'].includes(action)){useStore.getState().setSettingsOpen(true);return}

@@ -3,6 +3,15 @@ import {emailCode} from './email-code.mjs'
 async function start(){
  const status=document.querySelector('#status'),email=document.querySelector('#email'),code=document.querySelector('#code')
  const emailForm=document.querySelector('#email-form'),codeForm=document.querySelector('#code-form'),approve=document.querySelector('#approve')
+ const returnQuery=new URLSearchParams(location.search)
+ if(['return','cancel'].includes(returnQuery.get('checkout'))){
+  emailForm.hidden=true;codeForm.hidden=true;approve.hidden=true
+  document.querySelector('h1').textContent='Return to Terminal Buddy'
+  status.textContent=returnQuery.get('checkout')==='return'
+   ?'Your app checks payment automatically. Keep it open; it will show Subscription active once the server confirms payment. You can close this tab.'
+   :'Checkout closed. Return to the app to continue your trial or reopen checkout. This page does not establish payment status.'
+  return // A query parameter is navigation context, never proof of payment.
+ }
  const cfgResponse=await fetch('/api/config');if(!cfgResponse.ok)throw Error()
  const cfg=await cfgResponse.json()
  const auth=createClient(cfg.supabaseUrl,cfg.supabaseKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}})
@@ -57,6 +66,5 @@ async function start(){
   if(!(await r.json()).available){expire();return}
   emailForm.hidden=false
  }
- if(query.has('checkout'))status.textContent='Return to Terminal Buddy and refresh status to confirm your subscription. This page does not grant access.'
 }
 start().catch(()=>{document.querySelector('#status').textContent='The test account service is unavailable. Return to the app and restart sign-in shortly. No trial or payment has started.';document.querySelectorAll('button').forEach(b=>b.disabled=true)})

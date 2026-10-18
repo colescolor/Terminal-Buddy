@@ -16,7 +16,7 @@ export async function authorizeOwner(verifyUser,owners,token,requireMfa=true){
  if(requireMfa&&user.aal!=='aal2')fail('Verify your authenticator code to access owner records.',403)
  return user
 }
-export function ownerService({db,verifyUser,owners=new Set(),now=Date.now,graceDays=3}) {
+export function ownerService({db,verifyUser,owners=new Set(),now=Date.now,graceDays=3,live=false}) {
  return {async access(token){
   const user=await authorizeOwner(verifyUser,owners,token,false)
   return {mfaRequired:user.aal!=='aal2'}
@@ -44,11 +44,11 @@ export function ownerService({db,verifyUser,owners=new Set(),now=Date.now,graceD
    const totals=Object.fromEntries(states.map(s=>[s,0]));for(const row of summary.rows)totals[row.access_state]=row.count
    const matched=await tx.query(cte+' SELECT count(*)::int AS count FROM access'+where,[at,grace,state,pattern])
    const result=await tx.query(cte+' SELECT * FROM access'+where+' ORDER BY id LIMIT 50 OFFSET $5',[at,grace,state,pattern,page*50])
-   return {mode:'test',asOf:at,ownerEmail:user.email,totals,total:Object.values(totals).reduce((a,b)=>a+b,0),matched:matched.rows[0].count,page,pageSize:50,
+   return {mode:live?'live':'test',asOf:at,ownerEmail:user.email,totals,total:Object.values(totals).reduce((a,b)=>a+b,0),matched:matched.rows[0].count,page,pageSize:50,
     accounts:result.rows.map(a=>({id:a.id,email:a.email,state:a.access_state,
      trialStartedAt:Number(a.trial_started_at||0),trialEndsAt:Number(a.trial_ends_at||0),paidThrough:Number(a.paid),
      subscriptionStatus:a.billing.status||null,lastSyncedAt:Number(a.billing.syncedAt||0),
-     stripeUrl:/^cus_[A-Za-z0-9]+$/.test(a.billing.customerId||'')?'https://dashboard.stripe.com/test/customers/'+a.billing.customerId:null}))}
+     stripeUrl:/^cus_[A-Za-z0-9]+$/.test(a.billing.customerId||'')?'https://dashboard.stripe.com/'+(live?'':'test/')+'customers/'+a.billing.customerId:null}))}
   })
  }}
 }

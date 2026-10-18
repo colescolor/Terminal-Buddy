@@ -60,5 +60,11 @@ try{
  await expect(page.locator('#code-form')).toBeHidden();await expect(page.getByLabel('Email address')).not.toHaveAttribute('readonly','')
  await page.getByLabel('Email address').fill('right@example.invalid');await page.getByRole('button',{name:'Send sign-in code'}).click()
  await expect(page.locator('#status')).toContainText('right@example.invalid')
- console.log('PASS mocked browser OTP, step spacing, completed-step hiding, expired-link detection, late expiry message and duplicate-click prevention. No email sent or real authentication claimed.')
+ for(const outcome of ['return','cancel']){
+  await page.goto('http://billing.example.invalid/account/?checkout='+outcome)
+  await expect(page.getByRole('heading',{name:'Return to Terminal Buddy'})).toBeVisible()
+  await expect(page.locator('#email-form')).toBeHidden()
+  await expect(page.locator('#status')).toContainText(outcome==='return'?'checks payment automatically':'does not establish payment status')
+ }
+ console.log('PASS mocked browser OTP, step spacing, expired links, duplicate clicks and truthful Checkout return/cancel pages. No email sent or real authentication claimed.')
 }finally{await browser.close()}

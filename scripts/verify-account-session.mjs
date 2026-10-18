@@ -5,10 +5,10 @@ import {createRequire} from 'node:module'
 import vm from 'node:vm'
 import ts from 'typescript'
 const require=createRequire(import.meta.url)
-function instance(fetcher){
+function instance(fetcher,verify=()=>({state:'unknown'})){
  const module={exports:{}}
  const electron={app:{isPackaged:false,commandLine:{hasSwitch:()=>true},getPath:()=>'.'},safeStorage:{isEncryptionAvailable:()=>false},shell:{openExternal:async()=>{}}}
- const imports={electron,'@shared/edition':{EDITION:{kind:'free',commercialApproved:false,enforcement:false,billingOrigin:'https://billing.example.invalid',entitlementPublicKey:''}},'./account-access':{verifiedAccess:()=>({state:'unknown'})},'./account-dev':{developmentBillingOrigin:()=>null}}
+ const imports={electron,'@shared/edition':{EDITION:{kind:'free',commercialApproved:false,enforcement:false,billingOrigin:'https://billing.example.invalid',entitlementPublicKey:''}},'./account-access':{verifiedAccess:verify},'./account-dev':{developmentBillingOrigin:()=>null}}
  vm.runInNewContext(ts.transpileModule(readFileSync('src/main/account-service.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module,exports:module.exports,require:name=>imports[name]||require(name),fetch:fetcher,process:{env:{}},URL,Date,performance,AbortSignal,setTimeout,Error,Math,JSON,Buffer})
  const api=new module.exports.AccountService();api.token='fixture-token';return api
 }
@@ -24,4 +24,21 @@ test('a stale refresh cannot resurrect a signed-out account',async()=>{
  const pending=api.refresh();api.generation++;api.token='';api.record=null
  finish(Response.json({error:'Unauthorized'},{status:401}))
  assert.equal((await pending).state,'signed-out');assert.equal(api.token,'')
+})
+
+test('Checkout displays bounded pending feedback but only verified paid status clears it; requests coalesce',async()=>{
+ let finish,calls=0
+ const api=instance(async url=>{if(url.endsWith('/checkout'))return Response.json({confirming:true});calls++;return new Promise(r=>{finish=r})},r=>({state:r?.state||'eligible'}))
+ assert.equal((await api.subscribe(true)).billingPending,true)
+ const first=api.refresh(),second=api.refresh();assert.equal(calls,1)
+ finish(Response.json({state:'paid',accountId:'fixture',accessUntil:Date.now()+86400000}));await Promise.all([first,second])
+ assert.equal(api.view().state,'paid');assert.equal(api.view().billingPending,false);assert.ok(api.view().checkedAt)
+ api.billingPendingUntil=Date.now()-1;assert.equal(api.view().billingPending,false)
+})
+
+test('sign-out during Checkout initiation cannot reopen payment or restore pending UI',async()=>{
+ let finish
+ const api=instance(url=>url.endsWith('/checkout')?new Promise(r=>{finish=r}):Promise.resolve(Response.json({ok:true})))
+ const pending=api.subscribe(true);await api.signOut();finish(Response.json({url:'https://checkout.stripe.com/test'}))
+ assert.equal((await pending).state,'signed-out');assert.equal(api.billingPendingUntil,0)
 })

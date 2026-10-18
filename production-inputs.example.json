@@ -1,0 +1,9 @@
+{
+  "billingOrigin": "",
+  "supabaseOrigin": "",
+  "stripeAccountId": "",
+  "entitlementPublicKey": "",
+  "supportUrl": "",
+  "approvedTermsPath": "",
+  "approvedPrivacyPath": ""
+}

@@ -9,6 +9,6 @@
   "supportApproved": false,
   "installerDependencyReviewApproved": false,
   "signingStatusApproved": false,
-  "realStripeSandboxPassed": false,
+  "realStripeSandboxPassed": true,
   "productionAuthorized": false
 }

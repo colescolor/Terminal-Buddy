@@ -6,14 +6,14 @@ const issues=configurationIssues(process.env)
 if(process.argv.includes('--require-owner')&&!process.env.OWNER_USER_IDS?.trim())issues.push('OWNER_USER_IDS: missing; owner dashboard remains disabled')
 if(issues.length){for(const issue of issues)console.log('BLOCKED: '+issue);process.exitCode=1}
 else{
- console.log('PASS: TEST configuration formats. Values and secrets are not printed. This does not verify email delivery, ownership or provider connectivity.')
+ console.log('PASS: configuration formats and billing mode approval. Values and secrets are not printed. This does not verify email delivery, ownership or provider connectivity.')
  if(!process.env.OWNER_USER_IDS?.trim())console.log('NOTE: Owner access is disabled. Sign in to the account service, then allowlist the verified user UUID in server configuration.')
  if(process.argv.includes('--online')){
   // Explicit opt-in, read-only provider checks. No products, users, email or payments are created.
   let pool
   try{
    await stripeGateway(process.env).validatePrice()
-   console.log('PASS: Stripe returned the configured active TEST USD 6/month price.')
+   console.log('PASS: Stripe returned the configured active USD 6/month price in the selected environment.')
    pool=new Pool({...databaseConnection(process.env),max:1,connectionTimeoutMillis:8000,statement_timeout:10000})
    await pool.query('SELECT id,trial_started_at,trial_ends_at,billing FROM accounts LIMIT 0')
    for(const table of ['desktop_sessions','device_flows','processed_events','recovery_requests'])await pool.query('SELECT 1 FROM '+table+' LIMIT 0')

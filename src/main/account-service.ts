@@ -12,12 +12,15 @@ export class AccountService {
  private lastWall=Date.now(); private lastMono=performance.now(); private clockChanged=false
  private origin=EDITION.billingOrigin
  private key=EDITION.entitlementPublicKey
+ private issuer=EDITION.entitlementIssuer
  readonly enforcement=EDITION.kind==='commercial'&&EDITION.commercialApproved&&EDITION.enforcement
  private file=''
+ private billingPendingUntil=0; private checkedAt=0
+ private refreshPending: Promise<AccountView>|null=null
  constructor(){
   const developmentOrigin=developmentBillingOrigin(app.isPackaged,app.commandLine.hasSwitch('user-data-dir'),process.env.BUDDY_BILLING_DEV_ORIGIN)
   if(developmentOrigin){
-   this.origin=developmentOrigin;this.key=process.env.BUDDY_BILLING_DEV_PUBLIC_KEY||''
+   this.origin=developmentOrigin;this.key=process.env.BUDDY_BILLING_DEV_PUBLIC_KEY||'';this.issuer='terminal-buddy-test'
   }
   this.file=join(app.getPath('userData'),'buddy-account.secure')
   if(this.secure()&&existsSync(this.file)){
@@ -48,23 +51,32 @@ export class AccountService {
   this.tick()
   if(!this.origin)return {state:'free',configured:false,enforcement:false,message:'This edition remains free. No account or trial is required.'}
   if(!this.token)return {state:'signed-out',configured:true,enforcement:this.enforcement,message}
-  const access=this.clockChanged?{state:'unknown' as const}:verifiedAccess(this.record,this.key,Date.now(),this.highestWall)
+  const access=this.clockChanged?{state:'unknown' as const}:verifiedAccess(this.record,this.key,Date.now(),this.highestWall,this.issuer)
   this.persist()
   return {state:access.state,email:this.record?.email,trialEndsAt:this.record?.trialEndsAt,accessUntil:this.record?.accessUntil,
-   customer:this.record?.customer,configured:true,enforcement:this.enforcement,offline,message}
+   customer:this.record?.customer,configured:true,enforcement:this.enforcement,offline,message,
+   billingPending:Date.now()<this.billingPendingUntil,checkedAt:this.checkedAt||undefined}
  }
  assertCanCreate(){
   this.tick();this.persist()
-  if(this.enforcement&&(this.clockChanged||!canCreateWorkspace(true,this.record,this.key,Date.now(),this.highestWall)))
+  if(this.enforcement&&(this.clockChanged||!canCreateWorkspace(true,this.record,this.key,Date.now(),this.highestWall,this.issuer)))
    throw Error('Open Settings → Account to refresh access or subscribe. Existing terminals and saved work remain available.')
  }
  async refresh():Promise<AccountView>{
+  if(this.refreshPending)return this.refreshPending
+  const pending=this.refreshRecord();this.refreshPending=pending
+  try{return await pending}finally{if(this.refreshPending===pending)this.refreshPending=null}
+ }
+ private async refreshRecord():Promise<AccountView>{
   if(!this.token)return this.view()
   const generation=this.generation
   try {
    const record=await this.request('/status') as AccountRecord
    if(generation!==this.generation)return this.view()
-   if(verifiedAccess(record,this.key,Date.now(),0).state==='unknown')throw Error('Access could not be verified.')
+   const verified=verifiedAccess(record,this.key,Date.now(),0,this.issuer)
+   if(verified.state==='unknown')throw Error('Access could not be verified.')
+   this.checkedAt=Date.now()
+   if(['paid','cancelling'].includes(verified.state))this.billingPendingUntil=0
    this.record=record;this.highestWall=Date.now();this.clockChanged=false;this.lastWall=Date.now();this.lastMono=performance.now();this.persist();return this.view()
   }catch(error){
    if(generation!==this.generation)return this.view()
@@ -96,18 +108,21 @@ export class AccountService {
   }finally{this.signingIn=false}
  }
  async subscribe(accepted:boolean){
+  const generation=this.generation
   const result=await this.request('/checkout',{acceptRecurring:accepted})
-  if(result.url)await this.openStripe(result.url,'checkout.stripe.com')
-  return this.view(false,'Confirming subscription. Return here and refresh after Checkout; the browser return page does not grant access.')
+  if(generation!==this.generation)return this.view()
+  this.billingPendingUntil=Date.now()+10*60000
+  if(result.url)try{await this.openStripe(result.url,'checkout.stripe.com')}catch(error){this.billingPendingUntil=0;throw error}
+  return this.view(false,'Checkout opened in your browser. Payment confirmation updates automatically here.')
  }
- async manage(){const result=await this.request('/portal');await this.openStripe(result.url,'billing.stripe.com');return this.view()}
+ async manage(){const generation=this.generation;const result=await this.request('/portal');if(generation!==this.generation)return this.view();this.billingPendingUntil=Date.now()+10*60000;try{await this.openStripe(result.url,'billing.stripe.com')}catch(error){this.billingPendingUntil=0;throw error}return this.view()}
  private async openStripe(value:string,host:string){
   const u=new URL(value)
   if(u.protocol!=='https:'||u.hostname!==host||u.username||u.password)throw Error('Invalid billing link.')
   await shell.openExternal(u.href)
  }
  async signOut(){
-  const token=this.token;this.generation++;this.token='';this.record=null;this.persist()
+  const token=this.token;this.generation++;this.token='';this.record=null;this.billingPendingUntil=0;this.checkedAt=0;this.refreshPending=null;this.persist()
   try{if(token)await this.request('/sign-out',{},token)}catch{/* Local credentials are cleared even offline; remote sessions expire in 30 days. */}
   return this.view()
  }

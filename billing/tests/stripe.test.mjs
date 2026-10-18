@@ -37,3 +37,9 @@ test('Stripe adapter validates the fixed price, sends no trial, and reads paid p
   const old=price;price={...old,...patch};await assert.rejects(api.checkout({id:'account'},{customerId:'cus_server'},'https://billing.example.invalid'),/Price must/);price=old
  }
 })
+
+test('portal cancel_at schedules cancellation even when cancel_at_period_end is false, without shortening paid access',async()=>{
+ const stripe={subscriptions:{list:()=>listing([{id:'sub_portal',status:'active',livemode:false,cancel_at_period_end:false,cancel_at:1800000000,items:{data:[{price:{id:'price_approved'}}]}}])},invoices:{list:()=>listing([{livemode:false,currency:'usd',amount_paid:600,parent:{subscription_details:{subscription:'sub_portal'}},lines:{data:[{amount:600,pricing:{price_details:{price:'price_approved'}},period:{end:1800000000}}]}}])}}
+ const result=await stripeGateway({STRIPE_SECRET_KEY:'sk_test_fixture',STRIPE_MONTHLY_PRICE_ID:'price_approved'},stripe).snapshot('cus_fixture')
+ assert.equal(result.cancelAtPeriodEnd,true);assert.equal(result.paidThrough,1800000000000);assert.equal(result.status,'active')
+})

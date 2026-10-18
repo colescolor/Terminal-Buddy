@@ -1,22 +1,27 @@
 import Stripe from 'stripe'
 import { offer } from './policy.mjs'
-export function stripeGateway(env, injectedClient) {
- if(!/^sk_test_/.test(env.STRIPE_SECRET_KEY||''))throw Error('Only a Stripe TEST secret key is allowed.')
+import {billingMode} from './mode.mjs'
+export function stripeGateway(env, injectedClient, approvedRelease) {
+ const mode=billingMode(env,approvedRelease)
  const stripe=injectedClient||new Stripe(env.STRIPE_SECRET_KEY,{maxNetworkRetries:2,timeout:12000})
+ let verifiedAccount=false
+ const account=async()=>{if(mode.live&&!verifiedAccount){const value=await stripe.accounts.retrieve();if(value.id!==mode.accountId||!value.charges_enabled)throw Error('The approved Stripe account is not ready to accept payments.');verifiedAccount=true}}
  const priceId=env.STRIPE_MONTHLY_PRICE_ID
  if(!/^price_/.test(priceId||''))throw Error('Configure the approved test monthly Price ID.')
  const validatePrice=async()=>{
+  await account()
   const p=await stripe.prices.retrieve(priceId)
-  if(p.livemode||!p.active||p.currency!==offer.currency||p.unit_amount!==offer.amount||p.recurring?.interval!=='month'||p.recurring?.interval_count!==1)throw Error('Price must be active TEST USD 6.00/month, every one month.')
+  if(p.livemode!==mode.live||!p.active||p.currency!==offer.currency||p.unit_amount!==offer.amount||p.recurring?.interval!=='month'||p.recurring?.interval_count!==1)throw Error('Price must be active '+mode.name+' USD 6.00/month, every one month.')
  }
  return {
   validatePrice,
-  async customer(account){return stripe.customers.create({email:account.email,metadata:{account_id:account.id}},{idempotencyKey:'buddy-customer-'+account.id})},
+  async customer(user){await account();return stripe.customers.create({email:user.email,metadata:{account_id:user.id}},{idempotencyKey:'buddy-customer-'+user.id})},
   async snapshot(customerId){
+   await account()
    const subscriptions={data:[]},invoices={data:[]}
    for await(const s of stripe.subscriptions.list({customer:customerId,status:'all',limit:100}))subscriptions.data.push(s)
    for await(const i of stripe.invoices.list({customer:customerId,status:'paid',limit:100}))invoices.data.push(i)
-   if(subscriptions.data.some(s=>s.livemode)||invoices.data.some(i=>i.livemode))throw Error('Live Stripe data refused.')
+   if(subscriptions.data.some(s=>s.livemode!==mode.live)||invoices.data.some(i=>i.livemode!==mode.live))throw Error('Stripe data does not match billing mode.')
    const relevant=subscriptions.data.filter(s=>s.items.data.some(i=>i.price.id===priceId))
    const active=relevant.find(s=>!['canceled','incomplete_expired'].includes(s.status))
    const blockers=subscriptions.data.filter(s=>!['canceled','incomplete_expired'].includes(s.status))
@@ -35,11 +40,13 @@ export function stripeGateway(env, injectedClient) {
     }
    }
    return {status:active?.status||'canceled',subscriptionId:active?.id||null,
-    cancelAtPeriodEnd:!!active?.cancel_at_period_end,paidThrough,
+    // The hosted portal can set cancel_at to the period end while leaving
+    // cancel_at_period_end false (observed with API 2026-09-30.endive).
+    cancelAtPeriodEnd:!!active?.cancel_at_period_end||Number(active?.cancel_at)>0,paidThrough,
     duplicate:blockers.length>1,
     hasSubscription:blockers.length>0,knownSubscriptionIds:relevant.map(s=>s.id),paidSubscriptionIds:[...paidSubscriptionIds]}
   },
-  checkoutStatus:id=>stripe.checkout.sessions.retrieve(id),
+  async checkoutStatus(id){await account();const value=await stripe.checkout.sessions.retrieve(id);if(value.livemode!==mode.live)throw Error('Checkout mode mismatch.');return value},
   async checkout(account,billing,origin){
    await validatePrice()
    return stripe.checkout.sessions.create({mode:'subscription',customer:billing.customerId,
@@ -48,8 +55,8 @@ export function stripeGateway(env, injectedClient) {
     success_url:origin+'/account/?checkout=return',cancel_url:origin+'/account/?checkout=cancel'},
     {idempotencyKey:'buddy-checkout-v2-'+account.id+'-'+(billing.checkoutSequence||0)})
   },
-  portal:customer=>stripe.billingPortal.sessions.create({customer,return_url:env.BILLING_ORIGIN+'/account/',
-   ...(env.STRIPE_PORTAL_CONFIGURATION_ID?{configuration:env.STRIPE_PORTAL_CONFIGURATION_ID}:{})}),
+  async portal(customer){await account();return stripe.billingPortal.sessions.create({customer,return_url:env.BILLING_ORIGIN+'/account/',
+   ...(env.STRIPE_PORTAL_CONFIGURATION_ID?{configuration:env.STRIPE_PORTAL_CONFIGURATION_ID}:{})})},
   verifyEvent:(raw,signature)=>stripe.webhooks.constructEvent(raw,signature,env.STRIPE_WEBHOOK_SECRET),
  }
 }

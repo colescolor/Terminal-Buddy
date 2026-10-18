@@ -95,7 +95,7 @@ test('failed checkout safely retries; mismatched customer is refused; live confi
   f.stripe.checkout=async(...args)=>({...await original(...args),customer:'cus_other'})
   await assert.rejects(f.api.checkout(USER,{acceptRecurring:true}),/mismatch/)
   f.stripe.checkout=original;assert.ok((await f.api.checkout(USER,{acceptRecurring:true})).url)
-  assert.throws(()=>stripeGateway({STRIPE_SECRET_KEY:'sk_live_forbidden'}),/TEST/)
+  assert.throws(()=>stripeGateway({STRIPE_SECRET_KEY:'sk_live_forbidden'}),/mode/)
   assert.equal(accessFor({trial_started_at:1,trial_ends_at:2,billing:{}},3).state,'expired')
  }finally{await f.db.close()}
 })

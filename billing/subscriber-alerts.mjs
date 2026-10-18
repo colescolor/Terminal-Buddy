@@ -10,15 +10,15 @@ export function notificationIssues(env){
  if(env.RESEND_API_KEY&&!/^re_[A-Za-z0-9_]+$/.test(env.RESEND_API_KEY))issues.push('RESEND_API_KEY: invalid format')
  return issues
 }
-export function resendAlerts(env,fetcher=fetch){
+export function resendAlerts(env,fetcher=fetch,live=false){
  if(notificationIssues(env).length||!env.RESEND_API_KEY)return null
  return {
   message(account,subscriptionId){return {
    from:env.SUBSCRIBER_ALERT_FROM,to:[env.SUBSCRIBER_ALERT_TO],
-   subject:'[TEST] New Terminal Buddy subscriber',
-   text:['A Terminal Buddy subscription has its first confirmed test payment.',
-    'Subscriber: '+account.email,'Plan: USD $6/month','No real money was charged.',
-    'Stripe: https://dashboard.stripe.com/test/subscriptions/'+subscriptionId].join('\n\n')
+   subject:(live?'':'[TEST] ')+'New Terminal Buddy subscriber',
+   text:[live?'A Terminal Buddy subscription has its first confirmed payment.':'A Terminal Buddy subscription has its first confirmed test payment.',
+    'Subscriber: '+account.email,'Plan: USD $6/month',...(live?[]:['No real money was charged.']),
+    'Stripe: https://dashboard.stripe.com/'+(live?'':'test/')+'subscriptions/'+subscriptionId].join('\n\n')
   }},
   async send(body,key){
    const response=await fetcher('https://api.resend.com/emails',{method:'POST',

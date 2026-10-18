@@ -34,6 +34,8 @@ test('owner overview is read-only, paginated, filtered and matches access policy
   assert.equal(all.totals.trial,1);assert.equal(all.totals.paid,1);assert.equal(all.totals.cancelling,1);assert.equal(all.totals.past_due,1)
   const paid=await owner.overview('verified-fixture',{state:'paid'});assert.equal(paid.matched,1);assert.equal(paid.total,7)
   assert.match(paid.accounts[0].stripeUrl,/^https:\/\/dashboard\.stripe\.com\/test\/customers\/cus_/)
+  const liveView=await ownerService({...f.options,owners:new Set([USER]),live:true}).overview('verified-fixture',{state:'paid'})
+  assert.equal(liveView.mode,'live');assert.match(liveView.accounts[0].stripeUrl,/^https:\/\/dashboard\.stripe\.com\/customers\/cus_/)
   assert.equal((await owner.overview('verified-fixture',{search:'ALEX'})).matched,1)
   assert.equal((await owner.overview('verified-fixture',{search:'%'})).matched,0)
   assert.equal((await owner.overview('verified-fixture',{search:"' OR true; --"})).matched,0)

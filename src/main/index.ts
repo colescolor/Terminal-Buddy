@@ -2,6 +2,8 @@ import { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme, Menu, clipboar
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { AccountService } from './account-service'
+import { AccountSync } from './account-sync'
+import {EDITION} from '@shared/edition'
 import { readFileSync } from 'node:fs'
 import type { WebContents } from 'electron'
 import { mkdirSync, statSync } from 'node:fs'
@@ -54,7 +56,7 @@ import {
  * development Electron.app to match.
  */
 if (!app.commandLine.hasSwitch('user-data-dir')) {
-  const profileDir = join(app.getPath('appData'), 'terminal-buddy')
+  const profileDir = join(app.getPath('appData'), EDITION.kind==='commercial'&&EDITION.commercialApproved?'terminal-buddy-subscription':'terminal-buddy')
   mkdirSync(profileDir, { recursive: true })
   app.setPath('userData', profileDir)
 }
@@ -301,6 +303,12 @@ function createWindow(id: string = randomUUID(), persist = true): BrowserWindow 
 
 function registerIpc(): void {
   account = new AccountService()
+  const accountSync=new AccountSync(account,value=>sendToRenderer('account:changed',value))
+  const focusAccount=()=>{void accountSync.check('focus')}
+  app.on('browser-window-focus',focusAccount)
+  const accountTimer=setInterval(()=>{void accountSync.check()},5000)
+  accountTimer.unref()
+  app.once('will-quit',()=>{clearInterval(accountTimer);accountSync.stop();app.removeListener('browser-window-focus',focusAccount)})
   ipcMain.handle('account:status', e => { workspaceFor(e.sender); return account!.view() })
   ipcMain.handle('account:action', async (e, action: unknown) => {
     workspaceFor(e.sender)
@@ -311,14 +319,16 @@ function registerIpc(): void {
       ,chromium: () => shell.openPath(app.isPackaged ? join(process.resourcesPath, '..', 'LICENSES.chromium.html') : join(__dirname, '../..', 'node_modules/electron/dist/LICENSES.chromium.html'))
     }
     if (typeof action !== 'string' || !Object.hasOwn(actions, action)) throw Error('Unknown account action.')
-    return actions[action]()
+    const result=await actions[action]()
+    sendToRenderer('account:changed',result&&typeof result==='object'?result:account!.view())
+    return result
   })
   ipcMain.handle('account:notices', e => {
     workspaceFor(e.sender)
     try { return readFileSync(join(app.isPackaged ? join(process.resourcesPath, 'resources') : join(__dirname, '../..', 'resources'), 'THIRD_PARTY_LICENSES.txt'), 'utf8') }
     catch { return 'Third-party notice generation is required before distributing this build.' }
   })
-  void account.refresh()
+  void accountSync.check('startup')
   popouts.register()
   transfers.register()
   registerLauncherLibrary(workspaceFor, value => sendToRenderer('library:changed', value))

@@ -1,13 +1,19 @@
-import {useEffect,useState} from 'react'
+import {useEffect,useState,useId} from 'react'
 import type {AccountView} from '@shared/account'
 const names:Record<string,string>={free:'Free edition', 'signed-out':'Sign in to Terminal Buddy',eligible:'Your 14-day trial is ready',trial:'Your trial is active',paid:'Subscription active',cancelling:'Cancellation scheduled',past_due:'Payment needs attention',expired:'Your trial or paid access has ended',confirming:'Confirming subscription',unknown:'Unable to verify access'}
 export function AccountCard({value,run,busy=false}:{value:AccountView;run:(action:string)=>void;busy?:boolean}):React.JSX.Element {
  const [consent,setConsent]=useState(false)
+ const titleId=useId()
  const date=(n?:number)=>n?new Date(n).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}):''
- return <section className="account-card" aria-labelledby="account-title">
+ return <section className="account-card" aria-labelledby={titleId}>
   <div className="account-heading"><span className="account-label">ACCOUNT</span><span className="account-badge">{value.state==='trial'?Math.max(0,Math.ceil(((value.trialEndsAt||0)-Date.now())/86400000))+' days left':value.state==='paid'?'$6 / month':value.offline?'Offline':'Terminal Buddy'}</span></div>
-  <h3 id="account-title">{names[value.state]||names.unknown}</h3>
+  <h3 id={titleId}>{names[value.state]||names.unknown}</h3>
   {value.email&&<p className="account-email">{value.email}</p>}
+  {value.configured&&value.state!=='signed-out'&&<div className={'account-sync '+(value.billingPending?'is-pending':'')} role="status" aria-live="polite">
+   <span className="account-sync-dot" aria-hidden="true"/>
+   <span>{value.offline?'Offline — keeping your last verified status':value.billingPending?'Checking billing automatically…':value.state==='paid'?'Subscription confirmed':value.checkedAt?'Account status up to date':'Status updates automatically'}
+   {value.billingPending&&<small>Finish in your browser. This screen updates after the server confirms your payment or billing change.</small>}</span>
+  </div>}
   {value.state==='free'?<p>This edition remains free. No account, card or trial is required.</p>:<>
    {value.state==='signed-out'&&<p>Sign in with a verified email in your browser. Internet access is required to sign in and activate the trial.</p>}
    {value.state==='eligible'&&<p>Try all application features for 14 days. No card required. Your trial starts only when you choose below.</p>}
@@ -23,10 +29,10 @@ export function AccountCard({value,run,busy=false}:{value:AccountView;run:(actio
     {value.state==='signed-out'&&<button className="btn primary" disabled={busy} onClick={()=>run('signIn')}>Sign in with email</button>}
     {value.state==='eligible'&&<button className="btn primary" disabled={busy} onClick={()=>run('startTrial')}>Start free trial — no card</button>}
     {value.customer&&<button className="btn" disabled={busy} onClick={()=>run('manage')}>Manage billing</button>}
-    {value.state!=='signed-out'&&<button className="btn" disabled={busy} onClick={()=>run('refresh')}>Refresh status</button>}
+    {value.state!=='signed-out'&&<button className="text-btn" disabled={busy} onClick={()=>run('refresh')}>{busy?'Checking…':'Check again'}</button>}
     {value.state!=='signed-out'&&<button className="btn" disabled={busy} onClick={()=>run('signOut')}>Sign out</button>}
    </div>
-   {['trial','eligible','expired'].includes(value.state)&&<div className="account-purchase"><h4>One individual plan. $6/month.</h4><p>Charged today, then every month until canceled through Manage billing. Buying during the trial starts billing today; unused trial days do not postpone your first payment.</p><label className="account-consent"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/> I understand the recurring charge and cancellation.</label><button className="btn primary" disabled={busy||!consent} onClick={()=>run('subscribe')}>Subscribe — $6/month, charged today</button></div>}
+   {['trial','eligible','expired'].includes(value.state)&&<div className="account-purchase"><h4>One individual plan. $6/month.</h4><p>Charged today, then every month until canceled through Manage billing. Buying during the trial starts billing today; unused trial days do not postpone your first payment.</p><label className="account-consent"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/> I understand the recurring charge and cancellation.</label><button className="btn primary" disabled={busy||!consent} onClick={()=>run('subscribe')}>{value.billingPending?'Reopen secure checkout':'Subscribe — $6/month, charged today'}</button></div>}
   </>}
   <p className="account-note">Claude/Codex accounts and usage are separate.</p>
   {value.message&&<p role="status" className="account-note">{value.message}</p>}
@@ -36,7 +42,7 @@ export function AccountCard({value,run,busy=false}:{value:AccountView;run:(actio
 export default function AccountPanel():React.JSX.Element{
  const [value,setValue]=useState<AccountView>({state:'unknown',configured:false,enforcement:false})
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notices,setNotices]=useState<string|null>(null)
- useEffect(()=>{void window.buddy.account.status().then(setValue)},[])
+ useEffect(()=>{let active=true;const update=(v:AccountView)=>{if(active)setValue(v)};const off=window.buddy.account.onChanged(update);void window.buddy.account.status().then(update).catch(()=>{});return()=>{active=false;off()}},[])
  const run=async(action:string)=>{
   if(action==='notices'){setNotices(await window.buddy.account.notices());return}
   setBusy(true);setError('')

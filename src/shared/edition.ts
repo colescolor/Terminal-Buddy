@@ -6,5 +6,6 @@ export const EDITION = {
  enforcement: false,
  billingOrigin: '',
  entitlementPublicKey: '',
+ entitlementIssuer: 'terminal-buddy-test',
  supportUrl: 'https://github.com/colescolor/Terminal-Buddy/issues'
 }

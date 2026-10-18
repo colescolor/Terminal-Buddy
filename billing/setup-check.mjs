@@ -2,10 +2,11 @@ import {createPrivateKey} from 'node:crypto'
 import {ownerIds} from './admin.mjs'
 import {databaseConnection} from './connection.mjs'
 import {notificationIssues} from './subscriber-alerts.mjs'
+import {billingMode} from './mode.mjs'
 export function configurationIssues(env){
  const issues=notificationIssues(env)
  for(const name of ['STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET','STRIPE_MONTHLY_PRICE_ID','SUPABASE_URL','SUPABASE_PUBLISHABLE_KEY','DATABASE_URL','BILLING_ORIGIN','ENTITLEMENT_PRIVATE_KEY'])if(!env[name]?.trim())issues.push(name+': missing')
- if(env.STRIPE_SECRET_KEY&&!/^sk_test_[A-Za-z0-9_]+$/.test(env.STRIPE_SECRET_KEY))issues.push('STRIPE_SECRET_KEY: only TEST keys are accepted')
+ if(env.STRIPE_SECRET_KEY)try{billingMode(env)}catch{issues.push('STRIPE_SECRET_KEY: billing mode mismatch or production build is not approved')}
  if(env.STRIPE_WEBHOOK_SECRET&&!/^whsec_[A-Za-z0-9_]+$/.test(env.STRIPE_WEBHOOK_SECRET))issues.push('STRIPE_WEBHOOK_SECRET: invalid format')
  if(env.STRIPE_MONTHLY_PRICE_ID&&!/^price_[A-Za-z0-9]+$/.test(env.STRIPE_MONTHLY_PRICE_ID))issues.push('STRIPE_MONTHLY_PRICE_ID: invalid format')
  if(env.STRIPE_PORTAL_CONFIGURATION_ID&&!/^bpc_[A-Za-z0-9]+$/.test(env.STRIPE_PORTAL_CONFIGURATION_ID))issues.push('STRIPE_PORTAL_CONFIGURATION_ID: invalid format')

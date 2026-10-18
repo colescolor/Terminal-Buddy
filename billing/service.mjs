@@ -5,7 +5,7 @@ import {queueSubscriberAlerts} from './subscriber-alerts.mjs'
 const hash=value=>createHash('sha256').update(value).digest('base64url')
 const fail=(message,status=400)=>{throw Object.assign(Error(message),{status})}
 const idOf=v=>typeof v==='string'?v:v?.id
-export function service({db,stripe,verifyUser,privateKey,origin,now=Date.now,offlineDays=7,graceDays=3,alerts}) {
+export function service({db,stripe,verifyUser,privateKey,origin,now=Date.now,offlineDays=7,graceDays=3,alerts,live=false}) {
  if(!Number.isInteger(offlineDays)||offlineDays<0||offlineDays>7||!Number.isInteger(graceDays)||graceDays<0||graceDays>7)throw Error('Invalid access policy.')
  const sync=async(account,tx)=>{
   const b=account.billing
@@ -17,7 +17,7 @@ export function service({db,stripe,verifyUser,privateKey,origin,now=Date.now,off
  }
  const status=account=>{
   const verifiedAt=now(),access=accessFor(account,verifiedAt,graceDays)
-  const claims={issuer:'terminal-buddy-test',audience:'terminal-buddy-desktop',subject:account.id,
+  const claims={issuer:live?'terminal-buddy':'terminal-buddy-test',audience:'terminal-buddy-desktop',subject:account.id,
    ...access,verifiedAt,offlineUntil:Math.min(access.accessUntil,verifiedAt+offlineDays*DAY)}
   const payload=Buffer.from(JSON.stringify(claims)).toString('base64url')
   return {email:account.email,accountId:account.id,state:access.state,trialEndsAt:Number(account.trial_ends_at||0),
@@ -103,7 +103,7 @@ export function service({db,stripe,verifyUser,privateKey,origin,now=Date.now,off
      b.checkoutSequence=(b.checkoutSequence||0)+1
     }
     const checkout=await stripe.checkout(a,b,origin)
-    if(checkout.livemode||idOf(checkout.customer)!==b.customerId)fail('Checkout account mismatch.',403)
+    if(checkout.livemode!==live||idOf(checkout.customer)!==b.customerId)fail('Checkout account or environment mismatch.',403)
     b.checkoutId=checkout.id;await saveBilling(tx,id,b)
     return {url:checkout.url}
    })
@@ -115,7 +115,7 @@ export function service({db,stripe,verifyUser,privateKey,origin,now=Date.now,off
   async signOut(token){await db.query('DELETE FROM desktop_sessions WHERE token_hash=$1',[hash(token)]);return {ok:true}},
   async webhook(raw,signature){
    let event;try{event=stripe.verifyEvent(raw,signature)}catch{fail('Invalid webhook signature.',400)}
-   if(event.livemode!==false)fail('Live events are disabled.',400)
+   if(event.livemode!==live)fail('Webhook environment mismatch.',400)
    const supported=/^(customer.subscription.(created|updated|deleted|paused|resumed)|invoice.(paid|payment_failed|payment_action_required)|checkout.session.(completed|async_payment_succeeded|async_payment_failed|expired))$/.test(event.type)
    if(!supported)return {ignored:true}
    const customer=idOf(event.data.object.customer)

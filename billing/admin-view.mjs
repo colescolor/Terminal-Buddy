@@ -15,7 +15,7 @@ export function renderOverview(data){
    const cell=document.createElement('td');cell.dataset.label=label
    if(label==='Access'){const badge=document.createElement('span');badge.className='badge';badge.dataset.state=account.state;badge.textContent=value;cell.append(badge)}
    else if(label==='Billing'){
-    if(typeof account.stripeUrl==='string'&&/^https:\/\/dashboard\.stripe\.com\/test\/customers\/cus_[A-Za-z0-9]+$/.test(account.stripeUrl)){
+    if(typeof account.stripeUrl==='string'&&/^https:\/\/dashboard\.stripe\.com\/(?:test\/)?customers\/cus_[A-Za-z0-9]+$/.test(account.stripeUrl)){
      const link=document.createElement('a');link.href=account.stripeUrl;link.textContent='Open Stripe';link.target='_blank';link.rel='noopener noreferrer';link.setAttribute('aria-label','Open Stripe for '+account.email);cell.append(link)
     }else cell.textContent='No billing account'
    }else cell.textContent=value
@@ -39,7 +39,7 @@ export function dashboardController(load){
   try{
    const data=await load({search:byId('search').value,state:byId('state').value,page})
    if(current!==generation)return
-   last=data;renderOverview(data);message('Signed in as '+data.ownerEmail+'. Read-only test environment.')
+   last=data;renderOverview(data);message('Signed in as '+data.ownerEmail+'. Account overview is read-only.')
   }catch(error){if(current===generation){last=null;clearDashboard();byId('retry').hidden=false;message(error.message||'Unable to load records.',true)}}
   finally{if(current===generation){byId('refresh').disabled=false;if(last){byId('previous').disabled=page===0;byId('next').disabled=(page+1)*last.pageSize>=last.matched}}}
  }
