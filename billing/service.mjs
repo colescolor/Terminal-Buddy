@@ -134,6 +134,19 @@ export function service({db,stripe,verifyUser,privateKey,origin,now=Date.now,off
    }catch{console.warn('Subscriber alert pending retry.')}
    return result
   },
-  async reconcile(){const r=await db.query("SELECT id FROM accounts WHERE billing->>'customerId' IS NOT NULL");for(const row of r.rows)await lockedAccount(db,row.id,sync);if(alerts)await alerts.flushPending();return {accounts:r.rows.length}}
+  async reconcile({limit=50}={}){
+   if(!Number.isInteger(limit)||limit<1||limit>50)fail('Invalid reconciliation limit.')
+   const r=await db.query("SELECT id FROM accounts WHERE billing->>'customerId' IS NOT NULL ORDER BY GREATEST(COALESCE((billing->>'syncedAt')::bigint,0),COALESCE((billing->>'reconcileAttemptAt')::bigint,0)) ASC LIMIT $1",[limit])
+   let failed=0
+   for(const row of r.rows){
+    try{await lockedAccount(db,row.id,sync)}catch{
+     failed++
+     // Rotate failures fairly without changing verified access or paid dates.
+     await db.query("UPDATE accounts SET billing=jsonb_set(billing,'{reconcileAttemptAt}',to_jsonb($2::bigint)) WHERE id=$1",[row.id,now()])
+    }
+   }
+   if(alerts)await alerts.flushPending()
+   return {accounts:r.rows.length,failed}
+  }
  }
 }

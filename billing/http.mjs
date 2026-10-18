@@ -28,6 +28,11 @@ export function handler(service,publicConfig,owner,recovery) {
     '/admin/recovery/list':()=>recovery.list(token,body),'/admin/recovery/review':()=>recovery.review(token,body)
    }
    if(recovery&&recoveryActions[path])return Response.json(await recoveryActions[path](),{headers})
+   if(path==='/admin/access'){
+    if(!owner)return Response.json({error:'Owner dashboard is not configured.'},{status:503,headers})
+    if(Object.keys(body).length)throw Object.assign(Error('Unexpected fields.'),{status:400})
+    return Response.json(await owner.access(token),{headers})
+   }
    if(path==='/admin/overview'){
     if(!owner)return Response.json({error:'Owner dashboard is not configured.'},{status:503,headers})
     return Response.json(await owner.overview(token,body),{headers})

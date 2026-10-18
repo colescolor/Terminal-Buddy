@@ -1,7 +1,7 @@
 import {build} from 'esbuild'
 import {readFile,readdir} from 'node:fs/promises'
 import assert from 'node:assert/strict'
-const result=await build({entryPoints:['functions/api.mjs','functions/subscriber-alerts.mjs'],outdir:'unused-verification-output',bundle:true,platform:'node',target:'node22',format:'esm',packages:'external',write:false,metafile:true})
+const result=await build({entryPoints:['functions/api.mjs','functions/device-start.mjs','functions/subscriber-alerts.mjs','functions/reconcile-accounts.mjs'],outdir:'unused-verification-output',bundle:true,platform:'node',target:'node22',format:'esm',packages:'external',write:false,metafile:true})
 assert.ok(!Object.keys(result.metafile.inputs).some(path=>/tests\/|fixture|preview|dev\.mjs|pglite/i.test(path)),'No local fixtures in deployed function')
 const text=result.outputFiles.map(file=>file.text).join('\n')
 if(/verified-fixture|local_fixture_only|sk_live_[A-Za-z0-9]{12,}|whsec_[A-Za-z0-9]{12,}|BEGIN PRIVATE KEY/.test(text))throw Error('Unexpected fixture or secret pattern in deployed function; values suppressed.')

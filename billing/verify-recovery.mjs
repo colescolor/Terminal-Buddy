@@ -17,6 +17,7 @@ try{
     return route.fulfill({json:{request:records[0]}})
    }
    if(u.pathname==='/api/admin/recovery/review'){const b=req.postDataJSON();Object.assign(records[0],b,{revision:1});return route.fulfill({json:{request:records[0]}})}
+   if(u.pathname==='/api/admin/access')return route.fulfill({json:{mfaRequired:false}})
    if(u.pathname==='/api/admin/overview')return route.fulfill({json:{total:0,totals:{trial:0,paid:0,cancelling:0,expired:0},accounts:[],matched:0,page:0,pageSize:50,ownerEmail:'owner@example.invalid',asOf:Date.now()}})
    const files={'/recovery/':'public/recovery/index.html','/recovery.js':'public/recovery.js','/account.css':'public/account.css','/admin/':'public/admin/index.html','/admin.js':'public/admin.js','/admin.css':'public/admin.css'}
    if(files[u.pathname])return route.fulfill({body:await readFile(files[u.pathname]),contentType:u.pathname.endsWith('.js')?'text/javascript':u.pathname.endsWith('.css')?'text/css':'text/html'})

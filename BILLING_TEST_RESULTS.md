@@ -1,5 +1,7 @@
 # Local future-release test record
 
+Latest follow-up: [PAID_LAUNCH_HANDOFF.md](PAID_LAUNCH_HANDOFF.md). 26 backend tests and six desktop account tests passed, plus browser auth/admin/MFA/recovery checks, desktop typecheck/build, real Electron free-edition/sign-out checks and fresh Windows installer/portable inspection. Real Stripe sandbox API payments, actual hosted webhook delivery, renewal/cancellation and failed renewal are now evidenced. Full user-operated hosted Checkout/portal/MFA remains unverified. The older entries below are historical, not the latest status.
+
 Date: 2026-10-17. Version: 0.2.0-beta.1. Prepared on development/paid-release-local for the owner-authorized main push. No public application release, live payment or license replacement was performed. The separate TEST backend is deployed; see the latest section below.
 
 ## Latest provider setup evidence

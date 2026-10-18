@@ -21,7 +21,7 @@ export async function fixture(directory){
   verifyEvent:(raw,signature)=>sdk.webhooks.constructEvent(raw,signature,'whsec_local_fixture_only')
  }
  const options={db,stripe,privateKey:keys.privateKey,origin:'http://127.0.0.1:4318',now:()=>now,
-  verifyUser:async jwt=>jwt==='verified-fixture'?{id:USER,email:'demo@example.invalid',email_confirmed_at:'2026-10-17'}:null}
+  verifyUser:async jwt=>jwt==='verified-fixture'?{id:USER,email:'demo@example.invalid',email_confirmed_at:'2026-10-17',aal:'aal2'}:null}
  const api=service(options)
  const signed=(type,id='evt_fixture')=>{const raw=JSON.stringify({id,type,livemode:false,data:{object:{customer:'cus_fixture'}}});return {raw,signature:sdk.webhooks.generateTestHeaderString({payload:raw,secret:'whsec_local_fixture_only'})}}
  const login=async()=>{

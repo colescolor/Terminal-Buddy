@@ -24,6 +24,7 @@ try{
   const req=route.request(),u=new URL(req.url())
   if(u.hostname==='billing.example.invalid'){
    if(u.pathname==='/api/config')return route.fulfill({json:{origin:u.origin,supabaseUrl:'https://auth.example.invalid',supabaseKey:'publishable-fixture'}})
+   if(u.pathname==='/api/admin/access')return route.fulfill({status:deny?403:200,json:deny?{error:'This account does not have owner access.'}:{mfaRequired:false}})
    if(u.pathname==='/api/admin/overview'){
     assert.equal(req.headers().authorization,'Bearer '+jwt)
     return route.fulfill({status:deny?403:unavailable?503:200,json:deny||unavailable?{error:'Denied'}:sample})

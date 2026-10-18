@@ -8,6 +8,10 @@ NODE_VERSION = "22"
 [functions]
 node_bundler = "esbuild"
 [[redirects]]
+from = "/api/device/start"
+to = "/.netlify/functions/device-start"
+status = 200
+[[redirects]]
 from = "/api/*"
 to = "/.netlify/functions/api/:splat"
 status = 200

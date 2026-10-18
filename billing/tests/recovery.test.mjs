@@ -6,7 +6,7 @@ import {handler} from '../http.mjs'
 const OWNER='33333333-3333-4333-8333-333333333333'
 async function setup(){
  const f=await fixture()
- const verifyUser=async token=>token==='requester'?{id:USER,email:'new@example.invalid',email_confirmed_at:'yes'}:token==='other'?{id:OTHER,email:'other@example.invalid',email_confirmed_at:'yes'}:token==='owner'?{id:OWNER,email:'owner@example.invalid',email_confirmed_at:'yes'}:token==='unverified'?{id:USER,email:'new@example.invalid'}:null
+ const verifyUser=async token=>token==='requester'?{id:USER,email:'new@example.invalid',email_confirmed_at:'yes',aal:'aal2'}:token==='other'?{id:OTHER,email:'other@example.invalid',email_confirmed_at:'yes',aal:'aal2'}:token==='owner'?{id:OWNER,email:'owner@example.invalid',email_confirmed_at:'yes',aal:'aal2'}:token==='unverified'?{id:USER,email:'new@example.invalid'}:null
  return {...f,recovery:recoveryService({db:f.db,verifyUser,owners:new Set([OWNER]),now:f.now})}
 }
 const body={originalEmail:'lost@example.invalid',reason:'I lost this inbox.'}

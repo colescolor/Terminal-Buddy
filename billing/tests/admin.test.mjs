@@ -7,7 +7,7 @@ import {seedOwnerPreview} from '../owner-fixtures.mjs'
 import {accessFor} from '../policy.mjs'
 test('owner data requires a verified allowlisted provider ID, not email or desktop tokens',async()=>{
  const f=await fixture();try{
-  const owner=ownerService({db:f.db,verifyUser:async token=>token==='owner'?{id:USER,email:'owner@example.invalid',email_confirmed_at:'2026-10-17'}:token==='impostor'?{id:OTHER,email:'owner@example.invalid',email_confirmed_at:'2026-10-17'}:token==='unverified'?{id:USER,email:'owner@example.invalid'}:null,owners:ownerIds(USER)})
+  const owner=ownerService({db:f.db,verifyUser:async token=>token==='owner'?{id:USER,email:'owner@example.invalid',email_confirmed_at:'2026-10-17',aal:'aal2'}:token==='impostor'?{id:OTHER,email:'owner@example.invalid',email_confirmed_at:'2026-10-17',aal:'aal2'}:token==='unverified'?{id:USER,email:'owner@example.invalid'}:null,owners:ownerIds(USER)})
   const http=handler(f.api,{origin:'https://billing.example.invalid'},owner)
   const request=(token,body={},origin='https://billing.example.invalid')=>http(new Request('https://billing.example.invalid/api/admin/overview',{method:'POST',headers:{Authorization:'Bearer '+token,Origin:origin},body:JSON.stringify(body)}))
   assert.equal((await request('owner')).status,200)

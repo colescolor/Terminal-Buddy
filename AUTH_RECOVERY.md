@@ -1,5 +1,7 @@
 # Authentication and recovery operations
 
+Latest follow-up: see [PAID_LAUNCH_HANDOFF.md](PAID_LAUNCH_HANDOFF.md). Admin MFA is now enforced server-side using verified AAL2 claims, with an authenticator setup/challenge page. Real owner enrollment is still pending. The prior "MFA is not enforced" and device-start source-limit gaps below describe the previous deployment, not the current implementation. Device initiation now uses a dedicated Netlify rate-limited route; provider SMTP/OTP quotas still require review. A scheduled reconciliation worker has also been added.
+
 Updated 2026-10-17. This is implementation documentation for the separate TEST billing service, not a published promise of account restoration. No passwords are used. No account or subscription transfer endpoint was added.
 
 Hosted verification: test deploy `6ad4313acb51b83d67a05270` is ready. Account/admin/recovery pages returned 200; all five recovery/revocation endpoints returned 401 without authentication and cross-origin requests returned 403. Hosted recovery JavaScript loaded without exceptions or horizontal overflow at 390/768/1440px. No OTP or real recovery request was sent by these checks. Source is kept on the development branch; this follow-up does not authorize a new main push or installer release.
