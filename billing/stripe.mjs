@@ -50,10 +50,13 @@ export function stripeGateway(env, injectedClient, approvedRelease) {
   async checkout(account,billing,origin){
    await validatePrice()
    return stripe.checkout.sessions.create({mode:'subscription',customer:billing.customerId,
+    // Keep the approved direct-merchant Checkout flow even if a new Stripe
+    // account defaults to the separate Managed Payments service.
+    managed_payments:{enabled:false},
     line_items:[{price:priceId,quantity:1}],
     client_reference_id:account.id,subscription_data:{metadata:{account_id:account.id}},
     success_url:origin+'/account/?checkout=return',cancel_url:origin+'/account/?checkout=cancel'},
-    {idempotencyKey:'buddy-checkout-v2-'+account.id+'-'+(billing.checkoutSequence||0)})
+    {idempotencyKey:'buddy-checkout-v3-'+account.id+'-'+(billing.checkoutSequence||0)})
   },
   async portal(customer){await account();return stripe.billingPortal.sessions.create({customer,return_url:env.BILLING_ORIGIN+'/account/',
    ...(env.STRIPE_PORTAL_CONFIGURATION_ID?{configuration:env.STRIPE_PORTAL_CONFIGURATION_ID}:{})})},

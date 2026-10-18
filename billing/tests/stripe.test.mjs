@@ -30,7 +30,8 @@ test('Stripe adapter validates the fixed price, sends no trial, and reads paid p
  assert.equal(captured.body.customer,'cus_server');assert.equal(captured.body.mode,'subscription')
  assert.equal(captured.body.payment_method_types,undefined,'Current Stripe API uses Dashboard payment-method configuration')
  assert.equal(captured.body.subscription_data.trial_period_days,undefined)
- assert.equal(captured.options.idempotencyKey,'buddy-checkout-v2-account-0')
+  assert.deepEqual(captured.body.managed_payments,{enabled:false},'Account defaults must not opt customers into a different merchant/payment service')
+  assert.equal(captured.options.idempotencyKey,'buddy-checkout-v3-account-0')
  assert.equal((await api.snapshot('cus_server')).paidThrough,1800000000000)
  assert.deepEqual((await api.snapshot('cus_server')).paidSubscriptionIds,['sub_correct'])
  for(const patch of [{unit_amount:700},{currency:'eur'},{livemode:true},{active:false},{recurring:{interval:'year',interval_count:1}}]){
