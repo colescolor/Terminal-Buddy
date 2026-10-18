@@ -23,6 +23,12 @@ const child = spawn(process.env.BUDDY_EXE ?? require('electron'), [
 let logs = '', ws, serial = 0, originalClipboard
 child.stdout.on('data', b => { logs += b }); child.stderr.on('data', b => { logs += b })
 child.on('error', error => { logs += error.message })
+const deadline=setTimeout(()=>{
+  console.error('FAIL platform app exceeded 90 seconds; isolated app diagnostics:\n'+logs.slice(-6000))
+  child.kill('SIGKILL')
+  process.exit(1)
+},90000)
+deadline.unref()
 const pending = new Map()
 function send(method, params = {}) {
   return new Promise((resolve, reject) => {
@@ -46,10 +52,11 @@ async function key(code, key, modifiers, vk) {
 try {
   let page
   for (let n = 0; n < 100 && !page; n++) {
-    try { page = (await (await fetch('http://127.0.0.1:9255/json')).json()).find(p => p.type === 'page') } catch {}
+    try { page = (await (await fetch('http://127.0.0.1:9255/json',{signal:AbortSignal.timeout(750)})).json()).find(p => p.type === 'page') } catch {}
     if (!page) await sleep(150)
   }
   assert.ok(page, 'Electron starts: ' + logs)
+  console.log('PASS packaged Electron exposes its isolated test window')
   ws = new WebSocket(page.webSocketDebuggerUrl)
   await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject })
   ws.onmessage = event => {
@@ -118,4 +125,5 @@ try {
   const resolved = realpathSync(root)
   assert.ok(resolved.startsWith(realpathSync(tmpdir()) + sep) && resolve(root) === resolved)
   rmSync(resolved, { recursive: true, force: true, maxRetries: 10, retryDelay: 250 })
+  clearTimeout(deadline)
 }

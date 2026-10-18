@@ -23,12 +23,14 @@ export class AccountService {
    this.origin=developmentOrigin;this.key=process.env.BUDDY_BILLING_DEV_PUBLIC_KEY||'';this.issuer='terminal-buddy-test'
   }
   this.file=join(app.getPath('userData'),'buddy-account.secure')
-  if(this.secure()&&existsSync(this.file)){
+  if(this.origin&&existsSync(this.file)&&this.secure()){
    try {const saved=JSON.parse(safeStorage.decryptString(readFileSync(this.file)));this.token=saved.token||'';this.record=saved.record||null;this.highestWall=saved.highestWall||0}catch{/* Require sign-in instead of using an unreadable credential. */}
   }
  }
  private secure(){return safeStorage.isEncryptionAvailable()&&(process.platform!=='linux'||safeStorage.getSelectedStorageBackend()!=='basic_text')}
  private persist(){
+  if(!this.origin)return // Free editions must never initialize the OS account keychain.
+  if(!this.token&&!this.record){if(existsSync(this.file))unlinkSync(this.file);return}
   if(!this.secure())return // Memory-only when OS-backed encryption is unavailable; never plaintext.
   const encrypted=safeStorage.encryptString(JSON.stringify({token:this.token,record:this.record,highestWall:this.highestWall}))
   writeFileSync(this.file+'.tmp',encrypted,{mode:0o600});renameSync(this.file+'.tmp',this.file)

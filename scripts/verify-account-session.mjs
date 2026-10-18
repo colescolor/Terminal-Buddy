@@ -5,13 +5,29 @@ import {createRequire} from 'node:module'
 import vm from 'node:vm'
 import ts from 'typescript'
 const require=createRequire(import.meta.url)
-function instance(fetcher,verify=()=>({state:'unknown'})){
+function instance(fetcher,verify=()=>({state:'unknown'}),options={}){
  const module={exports:{}}
  const electron={app:{isPackaged:false,commandLine:{hasSwitch:()=>true},getPath:()=>'.'},safeStorage:{isEncryptionAvailable:()=>false},shell:{openExternal:async()=>{}}}
- const imports={electron,'@shared/edition':{EDITION:{kind:'free',commercialApproved:false,enforcement:false,billingOrigin:'https://billing.example.invalid',entitlementPublicKey:''}},'./account-access':{verifiedAccess:verify},'./account-dev':{developmentBillingOrigin:()=>null}}
+ if(options.safeStorage)electron.safeStorage=options.safeStorage
+ const imports={electron,'@shared/edition':{EDITION:{kind:'free',commercialApproved:false,enforcement:false,billingOrigin:options.origin??'https://billing.example.invalid',entitlementPublicKey:''}},'./account-access':{verifiedAccess:verify},'./account-dev':{developmentBillingOrigin:()=>null}}
  vm.runInNewContext(ts.transpileModule(readFileSync('src/main/account-service.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module,exports:module.exports,require:name=>imports[name]||require(name),fetch:fetcher,process:{env:{}},URL,Date,performance,AbortSignal,setTimeout,Error,Math,JSON,Buffer})
  const api=new module.exports.AccountService();api.token='fixture-token';return api
 }
+
+test('free startup and new workspaces never initialize the OS account keychain',async()=>{
+ const api=instance(()=>{throw Error('Unexpected network request')},undefined,{origin:'',safeStorage:{isEncryptionAvailable:()=>{throw Error('Unexpected keychain access')}}})
+ assert.equal(api.view().state,'free')
+ assert.doesNotThrow(()=>api.assertCanCreate())
+ api.token='';await api.signOut()
+})
+
+test('a fresh signed-out billing profile opens without touching the OS keychain',async()=>{
+ const api=instance(()=>{throw Error('Unexpected network request')},undefined,{safeStorage:{isEncryptionAvailable:()=>{throw Error('Unexpected keychain access')}}})
+ api.token=''
+ assert.equal(api.view().state,'signed-out')
+ assert.doesNotThrow(()=>api.assertCanCreate())
+ await api.signOut()
+})
 test('revoked/expired desktop authentication prompts login; an outage preserves the token and does not claim cancellation',async()=>{
  const revoked=instance(async()=>Response.json({error:'Unauthorized'},{status:401}))
  const view=await revoked.refresh();assert.equal(view.state,'signed-out');assert.match(view.message,/expired or was revoked/);assert.equal(revoked.token,'')

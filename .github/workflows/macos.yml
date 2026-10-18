@@ -28,7 +28,24 @@ jobs:
       - run: npm run dist:mac:beta -- --${{ matrix.arch }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - run: npm run test:platform-app && npm run test:windows && npm run test:launcher && npm run test:assistants
+      - name: Packaged terminal, process and keyboard smoke test
+        run: npm run test:platform-app
+        timeout-minutes: 3
+        env:
+          BUDDY_EXE: release/mac${{ matrix.arch == 'arm64' && '-arm64' || '' }}/Terminal Buddy.app/Contents/MacOS/Terminal Buddy
+      - name: Independent workspace smoke test
+        run: npm run test:windows
+        timeout-minutes: 4
+        env:
+          BUDDY_EXE: release/mac${{ matrix.arch == 'arm64' && '-arm64' || '' }}/Terminal Buddy.app/Contents/MacOS/Terminal Buddy
+      - name: Launcher smoke test
+        run: npm run test:launcher
+        timeout-minutes: 4
+        env:
+          BUDDY_EXE: release/mac${{ matrix.arch == 'arm64' && '-arm64' || '' }}/Terminal Buddy.app/Contents/MacOS/Terminal Buddy
+      - name: Custom assistant smoke test
+        run: npm run test:assistants
+        timeout-minutes: 4
         env:
           BUDDY_EXE: release/mac${{ matrix.arch == 'arm64' && '-arm64' || '' }}/Terminal Buddy.app/Contents/MacOS/Terminal Buddy
       - run: npm run downloads:mac -- --arch=${{ matrix.arch }}
