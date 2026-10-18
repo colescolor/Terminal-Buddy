@@ -8,6 +8,16 @@ import ts from 'typescript'
 const require=createRequire(import.meta.url),module={exports:{}}
 vm.runInNewContext(ts.transpileModule(readFileSync('src/main/account-access.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module,exports:module.exports,require,Buffer,Set,JSON,Number,Math})
 const {verifiedAccess,canCreateWorkspace}=module.exports
+const devModule={exports:{}}
+vm.runInNewContext(ts.transpileModule(readFileSync('src/main/account-dev.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{module:devModule,exports:devModule.exports,URL,Error})
+test('hosted test billing is restricted to an unpackaged isolated profile and exact approved origin',()=>{
+ const resolve=devModule.exports.developmentBillingOrigin,origin='https://terminal-buddy-billing-test.netlify.app'
+ assert.equal(resolve(false,true,origin),origin)
+ assert.equal(resolve(true,true,origin),null)
+ assert.equal(resolve(false,false,origin),null)
+ assert.equal(resolve(false,true,'http://127.0.0.1:4318'),'http://127.0.0.1:4318')
+ for(const value of [origin+'/account/',origin+'?secret=x',origin+'.example.com','http://terminal-buddy-billing-test.netlify.app','https://user:pass@terminal-buddy-billing-test.netlify.app'])assert.throws(()=>resolve(false,true,value))
+})
 const keys=generateKeyPairSync('ed25519'),key=keys.publicKey.export({type:'spki',format:'pem'}),now=1800000000000,DAY=86400000
 function record(extra={}){
  const claims={issuer:'terminal-buddy-test',audience:'terminal-buddy-desktop',subject:'account-1',state:'trial',verifiedAt:now,accessUntil:now+14*DAY,offlineUntil:now+7*DAY,...extra}

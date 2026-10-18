@@ -1,10 +1,10 @@
 # Terminal Buddy future billing — local TEST implementation
 
 ## Status and boundaries
-Version 0.2.0-beta.1, local branch development/paid-release-local. No push, deployment, external account creation, Stripe product/Price creation or real charge was performed. Current free edition behavior and website remain unchanged. Main app LICENSE, MIT metadata, copyright field and old release files remain unchanged. Commercial release is blocked by release-approvals.json and scripts/check-commercial-release.mjs.
+Version 0.2.0-beta.1, local branch development/paid-release-local. Authorized TEST backend is deployed; see STACK_SETUP.md for observed status and exact project/deploy IDs. No Git push, live charge or paid application release was performed. Current free edition behavior and website remain unchanged. Main app LICENSE, MIT metadata, copyright field and old release files remain unchanged. Commercial release is blocked by release-approvals.json and scripts/check-commercial-release.mjs.
 
 Backend packages are isolated in billing/package.json and lockfile: Stripe 23.0.0 (SDK stable API 2026-09-30.endive), pg 8.23.1, Supabase JS 2.118.0. PGlite 0.5.10 is local/test only. No Stripe/database/admin secret is used in Electron. Existing app dependencies were not upgraded.
-The owner has selected Netlify, Supabase, Stripe and Resend. See STACK_SETUP.md for the ordered connection checklist, SMTP email template, read-only owner dashboard and setup checks. No external service is connected yet.
+The owner has selected Netlify, Supabase, Stripe and Resend. See STACK_SETUP.md for the ordered connection checklist, SMTP email template, read-only owner dashboard, setup checks and partial provider connection evidence.
 
 ## Run locally
 From this worktree root:
@@ -33,17 +33,21 @@ For a fresh clone run npm ci at the root first. This isolated worktree currently
 
 Optional local desktop connection: start billing/dev.mjs, set BUDDY_BILLING_DEV_ORIGIN=http://127.0.0.1:4318 and BUDDY_BILLING_DEV_PUBLIC_KEY to billing/.local/public-key.pem contents, then start Electron with an explicit disposable --user-data-dir. Packaged apps ignore these variables. The local browser sign-in page is a labeled simulated verification flow. It never sends an email.
 
+For the actual hosted test service, the unpackaged isolated-profile development override also allows exactly https://terminal-buddy-billing-test.netlify.app with billing/.local/entitlement-public.pem as the public verification key. No other remote origin, credentials, path or query is accepted. Use fictional HOME/USERPROFILE directories and a separate user-data-dir when testing; the real owner's profile is not a test fixture. Packaged apps still ignore overrides and enforcement remains disabled. Manual test sequence: sign in through the system browser, enter the email code yourself, approve the initiating device, start the no-card trial, explicitly subscribe using Stripe test card 4242 4242 4242 4242 with any future expiry and three-digit CVC, then refresh status in the app. Never use a real card in this test environment. Verify actual webhook events and backend paid-through dates before claiming payment success.
+
 ## Proposed hosting
 Keep terminalbuddy.to static. Use a separate approved Netlify test billing project with base directory billing, config billing/netlify.toml, build npm ci && npm run check:setup && npm run build, output public, functions functions, Node 22. Supabase supplies verified email auth plus persistent Postgres. This adds one small API and one database, not a terminal backend.
-No host/domain/account is created here. Owner selects the real HTTPS billing origin. Never silently connect production main or add DNS records. Account pages remain noindex. Function/auth/database usage can have plan limits and cost; Stripe processing fees apply only to eventual live payments. Owner must approve plans, quotas, SMTP and spending separately.
+A separate test project is deployed at https://terminal-buddy-billing-test.netlify.app with account page /account/ and no connected Git repository. Never silently connect production main or add DNS records. Account pages remain noindex. Function/auth/database usage can have plan limits and cost; Stripe processing fees apply only to eventual live payments. Owner must approve plans, quotas and spending separately.
 
 ## Environment and migrations
 Copy billing/.env.example to an untracked .env and populate TEST credentials only:
 - STRIPE_SECRET_KEY: sk_test_ key, server only; sk_live_ rejected.
 - STRIPE_WEBHOOK_SECRET: test webhook signing secret, server only.
 - STRIPE_MONTHLY_PRICE_ID: one active test USD 600-cent recurring monthly Price, interval_count 1. The server retrieves and checks it before Checkout; app-supplied price/customer IDs are refused.
+- STRIPE_PORTAL_CONFIGURATION_ID: selected TEST portal configuration with cancellation at period end and plan switching disabled. Omission preserves the Stripe account default for existing local fixtures; use the explicit configured ID in staging.
 - SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY: actual approved project; publishable key is intentionally public. No service-role key is sent to a client.
 - DATABASE_URL: server-only TLS Postgres connection/pooler. Use Supabase's documented connection string and an appropriately privileged dedicated backend role. Do not disable certificate verification.
+- DATABASE_CA_CERT: public root CA PEM from the Supabase dashboard. When supplied, billing/connection.mjs requires sslmode=verify-full and configures pg with CA/hostname verification. The hosted test backend uses the restricted terminal_buddy_backend role; migrations use the separate administrator connection locally.
 - BILLING_ORIGIN: actual HTTPS origin, no path/query/credentials.
 - ENTITLEMENT_PRIVATE_KEY: Ed25519 PKCS8 PEM, server only. Put corresponding SPKI public key into the future desktop build configuration. Local preview uses a generated ephemeral key; production needs managed secret storage, rotation and review.
 - OFFLINE_DAYS and PAST_DUE_GRACE_DAYS: proposed 7 and 3, bounded 0–7 in code; owner approval required.
@@ -54,7 +58,7 @@ Apply billing/migrations/001_accounts.sql to an approved TEST database:
 cd billing
 node --env-file=.env migrate.mjs
 ```
-Tables: accounts (explicit trial_started_at/trial_ends_at and minimal billing references), desktop_sessions (hashed opaque token, account ID and expiry), device_flows (challenge/state hash, expiry, one-use status), processed_events (event ID/type/time only). RLS is enabled without public policies; browsers cannot access billing tables. Backend connects via its server role. Migrations do not copy app histories.
+Tables: accounts (explicit trial_started_at/trial_ends_at and minimal billing references), desktop_sessions (hashed opaque token, account ID and expiry), device_flows (challenge/state hash, expiry, one-use status), processed_events (event ID/type/time only). RLS is enabled without public policies; browsers cannot access billing tables. billing/db.mjs also revokes explicit privileges from anon/authenticated when these roles exist, including TRUNCATE, which RLS does not protect. Backend connects via its server role. Migrations do not copy app histories.
 Schema currently targets a new test database. Production migration/backups and role permissions require review. Do not point the local fixture server at a real database.
 
 ## Authentication
@@ -84,8 +88,8 @@ Only pty:create receives the prospective access guard. Existing PTY input, outpu
 src/shared/edition.ts remains kind free, enforcement false, commercialApproved false. Packaged apps have no environment override. Before a future approved edition, deliberately configure its origin/public key, separate opt-in installation/profile identity and upgrade disclosure; do not send it through old free updater feeds. Existing free installation must remain available. A seven-day cache can delay learning about remote cancellation; this tradeoff needs approval.
 
 ## Real provider validation still required
-No Stripe sandbox or Supabase credentials were supplied. Tests use a real local PostgreSQL-compatible engine and Stripe SDK signature functions with simulated Stripe data. No claim of real hosted checkout, emailed OTP, deployed webhook, invoice, refund or portal success is made.
-After owner supplies TEST access: apply migration, configure email template/SMTP, create the single approved test Price/portal, set secrets, deploy only an explicitly approved staging backend. Use Stripe CLI test forwarding or a test webhook endpoint. Verify success, 3DS/action-required, declines, duplicate clicks, webhook retry/reorder, renewal/test clocks, cancellation and reconciliation from a second installation. Add evidence to release-approvals.json only after tests pass.
+Real Supabase email verification succeeded twice. Stripe API verification confirmed the existing TEST $6/month price, and a TEST portal configuration was created. These are not evidence of completed Checkout or billing access. Automated payment tests still use simulated Stripe data and a local PostgreSQL-compatible engine. No real hosted purchase, deployed webhook, invoice, refund or customer portal session has been validated.
+The hosted database migration, restricted backend role, CA configuration, webhook registration and deployment smoke checks are complete; details are in STACK_SETUP.md. Pending: real authenticated app handoff and trial, owner access, successful Stripe-hosted test purchase/portal, actual Stripe webhook delivery, 3DS/action-required, declines, duplicate clicks, webhook retry/reorder, renewal/test clocks, cancellation and reconciliation from a second installation. Add evidence to release-approvals.json only after tests pass.
 
 ## Release preparation
 ```powershell

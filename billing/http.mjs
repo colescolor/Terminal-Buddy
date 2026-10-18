@@ -17,6 +17,7 @@ export function handler(service,publicConfig,owner) {
     return Response.json(await owner.overview(token,body),{headers})
    }
    if(path==='/device/start')return Response.json(await service.deviceStart(body),{headers})
+   if(path==='/device/check')return Response.json(await service.deviceCheck(body),{headers})
    if(path==='/device/approve')return Response.json(await service.deviceApprove(token,body),{headers})
    if(path==='/device/exchange')return Response.json(await service.deviceExchange(body),{headers})
    const id=await service.authenticate(token)

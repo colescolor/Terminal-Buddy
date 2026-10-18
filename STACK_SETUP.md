@@ -1,6 +1,36 @@
 # Terminal Buddy account stack: connection checklist
 
-The owner selected Netlify + Supabase + Stripe + Resend on 2026-10-17. This authorizes local implementation; no new provider accounts, paid plan purchases, DNS records, public deployment, live Stripe setup or main push were performed. This branch stays TEST-only and retains all prior license/release boundaries.
+The owner selected Netlify + Supabase + Stripe + Resend and subsequently authorized connecting the TEST setup. No paid plan purchases, production deployment, live Stripe setup or main push were performed. This branch stays TEST-only and retains all prior license/release boundaries.
+
+## Observed connection status — 2026-10-17
+
+- Supabase project xfqgvzcyqgbyuwpyubmk: Resend SMTP and both OTP templates saved. Two real email verification checks passed in the local auth check page, also confirmed by the owner. No trial or purchase was started by those checks.
+- Stripe sandbox: existing Price price_1URdFHI7QA15cEM8dUPSuOCw verified through the API as active, livemode false, USD 600 cents, recurring every one month. Existing product was reused.
+- Created TEST portal configuration bpc_1UReFoI7QA15cEM8n4JqrAZk: invoices, payment methods, and cancellation at period end; no plan switching. This verifies configuration only, not a completed customer portal session.
+- Deployed the separate Netlify project terminal-buddy-billing-test (934a3917-ef99-4fbd-bfac-e033f839cef0) at https://terminal-buddy-billing-test.netlify.app. Verified ready deploy: 6ad3e010071bbd4cb96fb0dd. No Git connection, push, custom domain or DNS change. Marketing project tb-web remains untouched.
+- Generated a dedicated local Ed25519 test key pair. Credentials remain in ignored billing/.local files, not browser bundles or tracked files.
+- Database password verified over TLS with hostname verification and the CA downloaded from the project's Supabase dashboard. Created accounts, desktop_sessions, device_flows, processed_events and customer_lookup in one transaction. A fresh connection confirmed all four tables have RLS enabled; anon/authenticated have no table privileges, and all four public REST requests returned HTTP 401. No account/trial records or payments were created. Unrelated tables were untouched.
+- Supabase CA source: https://supabase-downloads.s3-ap-southeast-1.amazonaws.com/prod/ssl/prod-ca-2021.crt (dashboard download link). Hosted DATABASE_CA_CERT contains that public PEM. billing/connection.mjs requires verify-full, supplies the CA to pg with rejectUnauthorized=true, and preserves hostname validation without a machine-specific file path.
+- Created terminal_buddy_backend as a restricted database login: no superuser, role/database creation, RLS bypass, public-schema creation or truncate rights. Explicit CRUD grants and role-specific RLS policies cover only the four billing tables. Verified login and hosted database operations. Netlify uses this role; the database administrator password was not uploaded.
+- Netlify initially rejected restricted scopes. After the owner's subsequent approval, standard encrypted environment storage was configured for this isolated TEST project. All contexts/scopes apply; authorized Netlify administrators and project execution contexts can access these values. No public repository, snippets or browser substitutions are configured. No plan upgrade was purchased. The CLI's API scope spelling is post_processing, despite the reference showing post-processing.
+- Registered TEST webhook we_1UReZdI7QA15cEM8rtRboH8c at https://terminal-buddy-billing-test.netlify.app/api/webhook using Stripe API version 2026-09-30.endive and the supported event list. The deployed endpoint rejects invalid signatures and accepts a locally signed no-op event. This does not establish Stripe-originated event delivery or payment reconciliation.
+- Hosted smoke checks passed: account/admin/notices HTTP 200, noindex/no-store; public-only /api/config; protected routes HTTP 401; cross-origin request HTTP 403; missing route HTTP 404; expiring device request write/read through the restricted role; unapproved exchange stays pending, wrong verifier denied. No account/trial/payment created. Browser pages load without exceptions; account screenshots saved at artifacts/billing-hosted/account-390.png and account-1440.png.
+- Owner UUID allowlist remains empty, so /api/admin/overview intentionally returns 503 without customer data. No real Checkout, portal session, hosted authenticated trial or Stripe-originated webhook delivery has been tested yet.
+
+Next: connect an isolated development app to the test origin/public key; verify hosted email handoff, trials, Checkout, portal and Stripe webhook delivery; configure the verified owner UUID. The current free desktop and main are unchanged.
+
+### Repeat a test deployment
+
+Use the billing directory, existing Netlify CLI login, and approved local environment. Keep all credentials out of command arguments and browser bundles. Run the setup check with the restricted database URL and DATABASE_CA_CERT, then build/verify before uploading:
+
+```powershell
+node --env-file=.env check-setup.mjs --online
+node --env-file=.env build.mjs
+node verify-deployment.mjs
+netlify deploy --site 934a3917-ef99-4fbd-bfac-e033f839cef0 --prod --no-build --dir public --functions functions --skip-functions-cache
+```
+
+Here --prod publishes only the named TEST project's assigned address, which is needed for the stable webhook URL. It does not authorize a marketing-site deployment or live payments. Netlify CLI 27.13.0 was used. Owner dashboard activation requires a verified Supabase UUID in OWNER_USER_IDS followed by function redeployment. Keep the database administrator connection local for migrations; do not replace the hosted restricted-role URL with it.
 
 ## What is ready locally
 
@@ -17,7 +47,7 @@ Use an owner-approved Supabase project dedicated to Terminal Buddy test data. Do
 
 Use the project's documented TLS database/pooler connection string for DATABASE_URL. Configure an appropriately privileged server role; billing tables must not be accessible to anon/authenticated browser roles. RLS is enabled without public policies. Do not disable certificate verification to fix a connection error.
 
-After approving the target test database, apply billing/migrations/001_accounts.sql using `node --env-file=.env migrate.mjs` from billing/. The migration is idempotent and is for a new billing database. Back up/review any existing schema before applying it elsewhere. No chats or local app databases are migrated.
+After approving the target test database, run `node --env-file=.env migrate.mjs` from billing/. This applies billing/migrations/001_accounts.sql and removes any default grants from existing anon/authenticated roles through billing/db.mjs. Running the SQL file alone omits that explicit-role hardening. The migration is idempotent and is for a new billing database. Back up/review any existing schema before applying it elsewhere. No chats or local app databases are migrated.
 
 Enable email authentication and confirmation. Configure Site URL and permitted redirect URLs for the actual approved HTTPS billing origin. The app uses a typed email code; browser session tokens stay in memory.
 

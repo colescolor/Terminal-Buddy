@@ -42,12 +42,13 @@ export function stripeGateway(env, injectedClient) {
   async checkout(account,billing,origin){
    await validatePrice()
    return stripe.checkout.sessions.create({mode:'subscription',customer:billing.customerId,
-    line_items:[{price:priceId,quantity:1}],payment_method_types:['card'],
+    line_items:[{price:priceId,quantity:1}],
     client_reference_id:account.id,subscription_data:{metadata:{account_id:account.id}},
     success_url:origin+'/account/?checkout=return',cancel_url:origin+'/account/?checkout=cancel'},
-    {idempotencyKey:'buddy-checkout-'+account.id+'-'+(billing.checkoutSequence||0)})
+    {idempotencyKey:'buddy-checkout-v2-'+account.id+'-'+(billing.checkoutSequence||0)})
   },
-  portal:customer=>stripe.billingPortal.sessions.create({customer,return_url:env.BILLING_ORIGIN+'/account/'}),
+  portal:customer=>stripe.billingPortal.sessions.create({customer,return_url:env.BILLING_ORIGIN+'/account/',
+   ...(env.STRIPE_PORTAL_CONFIGURATION_ID?{configuration:env.STRIPE_PORTAL_CONFIGURATION_ID}:{})}),
   verifyEvent:(raw,signature)=>stripe.webhooks.constructEvent(raw,signature,env.STRIPE_WEBHOOK_SECRET),
  }
 }

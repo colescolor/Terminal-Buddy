@@ -29,6 +29,12 @@ export function service({db,stripe,verifyUser,privateKey,origin,now=Date.now,off
  }
  return {
   authenticate,
+  async deviceCheck({id,state}){
+   if(!/^[0-9a-f-]{36}$/i.test(id||'')||!/^[A-Za-z0-9_-]{43}$/.test(state||''))return {available:false}
+   const r=await db.query('SELECT state_hash,expires_at,consumed,account_id FROM device_flows WHERE id=$1',[id])
+   const f=r.rows[0]
+   return {available:!!f&&!f.consumed&&!f.account_id&&Number(f.expires_at)>now()&&f.state_hash===hash(state)}
+  },
   async deviceStart({challenge,state}){
    if(!/^[A-Za-z0-9_-]{43}$/.test(challenge||'')||!/^[A-Za-z0-9_-]{43}$/.test(state||''))fail('Invalid sign-in request.')
    await db.query('DELETE FROM device_flows WHERE expires_at<$1',[now()])

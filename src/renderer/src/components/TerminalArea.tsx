@@ -12,6 +12,9 @@ import Buddy from './Buddy'
 import TerminalStatus from './TerminalStatus'
 import SessionName from './SessionName'
 import { beginTerminalDrag } from '../lib/terminal-drag'
+import type {AccountView} from '@shared/account'
+import {AccountCard} from './AccountPanel'
+import '../account.css'
 
 /** Roughly square, biased to wider rows — terminals want columns more than lines. */
 function baseColumns(n: number): number {
@@ -40,6 +43,23 @@ function applyDrop(item: DragItem, session: Session): void {
 }
 
 export default function TerminalArea(): React.JSX.Element {
+  const [account,setAccount]=useState<AccountView|null>(null)
+  const [accountBusy,setAccountBusy]=useState(false)
+  const [accountError,setAccountError]=useState('')
+  useEffect(()=>{
+    let active=true
+    const refresh=()=>{void window.buddy.account.status().then(value=>{if(active)setAccount(value)}).catch(()=>{})}
+    refresh();window.addEventListener('focus',refresh)
+    const timer=setInterval(refresh,3000)
+    return()=>{active=false;clearInterval(timer);window.removeEventListener('focus',refresh)}
+  },[])
+  const accountAction=async(action:string):Promise<void>=>{
+    if(['notices','chromium'].includes(action)){useStore.getState().setSettingsOpen(true);return}
+    setAccountBusy(true);setAccountError('')
+    try{const value=await window.buddy.account.action(action);if(value)setAccount(value)}
+    catch(error){setAccountError((error instanceof Error?error.message:'Please retry.').replace(/^Error invoking remote method '[^']+': (?:Error: )?/,''))}
+    finally{setAccountBusy(false)}
+  }
   const sessions = useStore((s) => s.sessions)
   const activeId = useStore((s) => s.activeId)
   const layout = useStore((s) => s.layout)
@@ -173,6 +193,20 @@ export default function TerminalArea(): React.JSX.Element {
   /* ------------------------------------------------------------------ render */
 
   if (sessions.length === 0) {
+    if(account?.configured&&['signed-out','eligible','expired','confirming','unknown'].includes(account.state))return (
+      <div className="empty account-welcome">
+        <div className="empty-card">
+          {account.state==='signed-out'?<>
+            <Buddy mood="calm" size={84} title="Welcome to Terminal Buddy" />
+            <h2>Welcome to Terminal Buddy</h2>
+            <p>Log in to get started. You don&rsquo;t need a project open.</p>
+            <button className="btn primary account-login" disabled={accountBusy} onClick={()=>void accountAction('signIn')}>{accountBusy?'Finish login in your browser…':'Login'}</button>
+            <p className="account-note">Your Claude and Codex accounts stay separate.</p>
+          </>:<AccountCard value={account} run={action=>void accountAction(action)} busy={accountBusy}/>}
+          {accountError&&<p role="alert">{accountError}</p>}
+        </div>
+      </div>
+    )
     return (
       <div className="empty">
         <div className="empty-card">

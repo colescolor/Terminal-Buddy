@@ -233,7 +233,9 @@ export const useStore = create<State & Actions>((set, get) => ({
       return
     }
     if (get().sessions.length === 0) {
-      set({ newSessionOpen: true })
+      const account=await window.buddy.account.status().catch(()=>null)
+      const welcome=account?.configured&&['signed-out','eligible','expired','confirming','unknown'].includes(account.state)
+      set({ newSessionOpen: !welcome,...(welcome?{walkthroughOpen:false}:{}) })
     }
     set({ ready: true })
     get().persist()

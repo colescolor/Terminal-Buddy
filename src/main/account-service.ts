@@ -5,6 +5,7 @@ import {createHash,randomBytes} from 'node:crypto'
 import {EDITION} from '@shared/edition'
 import type {AccountRecord,AccountView} from '@shared/account'
 import {canCreateWorkspace,verifiedAccess} from './account-access'
+import {developmentBillingOrigin} from './account-dev'
 const delay=(ms:number)=>new Promise(r=>setTimeout(r,ms))
 export class AccountService {
  private token=''; private record:AccountRecord|null=null; private highestWall=0; private signingIn=false; private generation=0
@@ -14,11 +15,9 @@ export class AccountService {
  readonly enforcement=EDITION.kind==='commercial'&&EDITION.commercialApproved&&EDITION.enforcement
  private file=''
  constructor(){
-  // Development service is opt-in, loopback only, and requires an explicit isolated profile.
-  if(!app.isPackaged&&app.commandLine.hasSwitch('user-data-dir')&&process.env.BUDDY_BILLING_DEV_ORIGIN){
-   const u=new URL(process.env.BUDDY_BILLING_DEV_ORIGIN)
-   if(u.protocol!=='http:'||u.hostname!=='127.0.0.1')throw Error('Development billing must be loopback.')
-   this.origin=u.origin;this.key=process.env.BUDDY_BILLING_DEV_PUBLIC_KEY||''
+  const developmentOrigin=developmentBillingOrigin(app.isPackaged,app.commandLine.hasSwitch('user-data-dir'),process.env.BUDDY_BILLING_DEV_ORIGIN)
+  if(developmentOrigin){
+   this.origin=developmentOrigin;this.key=process.env.BUDDY_BILLING_DEV_PUBLIC_KEY||''
   }
   this.file=join(app.getPath('userData'),'buddy-account.secure')
   if(this.secure()&&existsSync(this.file)){
