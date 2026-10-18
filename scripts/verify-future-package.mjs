@@ -20,8 +20,8 @@ assert.ok((await stat(output+'/win-unpacked/LICENSES.chromium.html')).size>1000)
 const files=asar.listPackage(archive)
 assert.ok(!files.some(f=>/billing[\\/]|\.env$|release-approvals|\.local|tests[\\/]/.test(f)))
 for(const f of files.filter(f=>/^\\out\\.*\.(js|json)$/.test(f)))assert.doesNotMatch(asar.extractFile(archive,f.slice(1)).toString(),/(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{12,}|whsec_[A-Za-z0-9]{12,}|BEGIN PRIVATE KEY/)
-for(const file of ['out/main/index.js','out/preload/index.js'])assert.equal(asar.extractFile(archive,file).toString(),await readFile(file,'utf8'),'Packaged code matches current build')
-if(commercial){const main=asar.extractFile(archive,'out/main/index.js').toString();assert.match(main,/commercialApproved:\s*true/);assert.match(main,/enforcement:\s*true/);assert.ok(main.includes('terminal-buddy-subscription'))}
+for(const file of [join('out','main','index.js'),join('out','preload','index.js')])assert.equal(asar.extractFile(archive,file).toString(),await readFile(file,'utf8'),'Packaged code matches current build')
+if(commercial){const main=asar.extractFile(archive,join('out','main','index.js')).toString();assert.match(main,/commercialApproved:\s*true/);assert.match(main,/enforcement:\s*true/);assert.ok(main.includes('terminal-buddy-subscription'))}
 const assets=[]
 const inspection=await mkdtemp(join(tmpdir(),'buddy-future-package-'))
 const sevenZip=resolve('node_modules/electron-winstaller/vendor/7z.exe')
