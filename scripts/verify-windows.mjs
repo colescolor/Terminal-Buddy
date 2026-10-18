@@ -111,7 +111,11 @@ try {
   pass('New Window button creates a separate full workspace with its own terminal')
   await rename(first, 'Workspace Alpha'); await rename(second, 'Workspace Beta')
   await first.ev("document.querySelector('.topbar .seg button:last-child').click()")
-  await sleep(500)
+  await until(async () => {
+    const saved = await first.ev('window.buddy.workspace.get()')
+    return saved.layout === 'grid' && saved.sessions[0]?.title === 'Workspace Alpha'
+  }, 'first workspace layout and name persist')
+  await until(async () => (await second.ev('window.buddy.workspace.get()')).sessions[0]?.title === 'Workspace Beta', 'second workspace name persists')
   assert.equal((await first.ev('window.buddy.workspace.get()')).layout, 'grid')
   assert.equal((await second.ev('window.buddy.workspace.get()')).layout, 'tabs')
   assert.equal((await first.ev('window.buddy.workspace.get()')).sessions[0].title, 'Workspace Alpha')
