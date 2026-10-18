@@ -90,7 +90,7 @@ try {
     }
   }
   await send('Runtime.enable')
-  await ev(`window.__feed=[]; window.buddy.feed.onEvents((id,events)=>window.__feed.push(...events))`)
+  await ev(`window.__feed=[]; window.__states=[]; window.buddy.feed.onEvents((id,events)=>window.__feed.push(...events)); window.buddy.pty.onAgentState((id,state,message)=>window.__states.push(state+':'+message))`)
   for (let i = 0; i < 40; i++) {
     if (await ev(`!!document.querySelector('.app') && !document.querySelector('.boot')`)) break
     await sleep(500)
@@ -126,13 +126,15 @@ try {
       bubbles: window.__feed.filter(e=>e.role==='user'||e.role==='assistant').map(e=>e.text),
       roles: window.__feed.map(e=>e.role),
       tools: window.__feed.filter(e=>e.role==='tool').map(e=>e.tool+' '+e.text),
-      badge: document.querySelector('.cell-head .badge')?.textContent ?? ''
+      badge: document.querySelector('.cell-head .badge')?.textContent ?? '',
+      prompt: document.querySelector('.cell-prompt')?.textContent ?? ''
     })`)
     if (state.bubbles.length >= 2) break
   }
 
   check('background telemetry receives both turns without a transcript UI', state.bubbles.length >= 2, JSON.stringify(state.bubbles))
   check('turns are attributed', state.roles.includes('user') && state.roles.includes('assistant'), state.roles.join(', '))
+  check('the last prompt stays visible above the terminal', /Ping from the feed test/.test(state.prompt), JSON.stringify(state.prompt))
   check(
     'a tool call reads as plain language',
     state.tools.some((t) => /Opened/.test(t) && /todo\.md/.test(t)),
@@ -172,6 +174,7 @@ try {
   const codexTranscript = join(codexDir, `rollout-feedtest-${Date.now()}.jsonl`)
   const codexLines = [
     { type: 'session_meta', timestamp: iso(), payload: { session_id: 'feed-test', cwd: HOME } },
+    { type: 'event_msg', timestamp: '2020-01-01T00:00:00.000Z', payload: { type: 'task_complete', last_agent_message: 'stale turn' } },
     { type: 'event_msg', timestamp: iso(), payload: { type: 'user_message', message: 'Codex feed ping' } },
     {
       type: 'response_item',
@@ -183,7 +186,8 @@ try {
         arguments: JSON.stringify({ path: join(HOME, 'notes.md') })
       }
     },
-    { type: 'event_msg', timestamp: iso(), payload: { type: 'agent_message', message: 'Codex feed pong' } }
+    { type: 'event_msg', timestamp: iso(), payload: { type: 'agent_message', message: 'Codex feed pong' } },
+    { type: 'event_msg', timestamp: iso(), payload: { type: 'task_complete', last_agent_message: 'Codex feed pong' } }
   ]
   writeFileSync(codexTranscript, codexLines.map((line) => JSON.stringify(line)).join('\n') + '\n')
 
@@ -197,6 +201,11 @@ try {
     if (codexState.bubbles.includes('Codex feed pong')) break
   }
   check('Codex response items join the conversation', codexState.bubbles.includes('Codex feed pong'))
+  const states = await ev(`window.__states`)
+  check('a Codex turn ending is reported as finished', states.includes('done:Codex feed pong'), JSON.stringify(states))
+  check('replayed history does not report state', !states.some((x) => /stale/.test(x)), JSON.stringify(states))
+  await sleep(1500)
+  check('the pane says Finished', await ev(`[...document.querySelectorAll('.terminal-status')].some(e => e.textContent === 'Finished')`), JSON.stringify(await ev(`[...document.querySelectorAll('.terminal-status')].map(e => e.textContent)`)))
   check('Codex MCP calls identify their server', codexState.tools.some((t) => /filesystem/.test(t)), JSON.stringify(codexState.tools))
 
 

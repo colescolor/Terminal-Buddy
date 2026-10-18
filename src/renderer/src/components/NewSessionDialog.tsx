@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import LaunchRecovery from './LaunchRecovery'
-import type { ChatEntry } from '@shared/types'
+import type { ChatEntry, SessionSpec } from '@shared/types'
 import { shortPath } from '../lib/format'
 import { useStore } from '../store/useStore'
 
@@ -15,6 +15,7 @@ export default function NewSessionDialog(): React.JSX.Element {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [choosingAgent, setChoosingAgent] = useState(false)
+  const [count, setCount] = useState(1)
   const close = (): void => useStore.getState().setNewSessionOpen(false)
 
   useEffect(() => {
@@ -29,6 +30,20 @@ export default function NewSessionDialog(): React.JSX.Element {
     return () => { live = false }
   }, [])
 
+  /** Open the same spec `count` times. The store caps the total at 16. */
+  const openMany = async (spec: SessionSpec): Promise<string | null> => {
+    const store = useStore.getState()
+    let first: string | null = null
+    for (let i = 0; i < count; i++) {
+      const id = await store.openSession(spec)
+      if (!id) break
+      first ??= id
+    }
+    // Asking for several only pays off if you can see them at once.
+    if (first && count > 1) store.setLayout('grid')
+    return first
+  }
+
   const chooseFolder = async (): Promise<void> => {
     if (inFlight.current) return
     inFlight.current = true
@@ -38,7 +53,7 @@ export default function NewSessionDialog(): React.JSX.Element {
       if (dir) {
         setCwd(dir); setError('')
         const store = useStore.getState()
-        if (await store.openSession({ cwd: dir, requireCwd: true })) {
+        if (await openMany({ cwd: dir, requireCwd: true })) {
           store.setLocked(true)
           close()
         }
@@ -56,7 +71,7 @@ export default function NewSessionDialog(): React.JSX.Element {
     setBusy(true)
     setError('')
     const store = useStore.getState()
-    const id = await store.openSession({
+    const id = await openMany({
       cwd, requireCwd: true,
       ...(profile ? { assistantId: profile.id, title: `New ${profile.name} chat` } : kind === 'shell' ? {} : {
         agent: kind as 'claude' | 'codex', initialCommand: kind,
@@ -92,6 +107,14 @@ export default function NewSessionDialog(): React.JSX.Element {
       <div className="new-session-folder">
         <span>Start in</span>
         <code title={cwd} data-new-cwd>{cwd || 'Finding your home folder…'}</code>
+      </div>
+      <div className="new-session-count">
+        <span>How many</span>
+        <div className="seg small">
+          {[1, 2, 3, 4].map(n => <button key={n} type="button" data-new-count={n} className={n === count ? 'is-on' : ''}
+            aria-pressed={n === count} disabled={busy} onClick={() => setCount(n)}>{n}</button>)}
+        </div>
+        <small>{count === 1 ? 'One terminal' : `${count} terminals side by side`}</small>
       </div>
       <div className="new-session-choices">
         {choosingAgent ? <>

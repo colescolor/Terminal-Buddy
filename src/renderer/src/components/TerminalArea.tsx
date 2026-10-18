@@ -330,7 +330,7 @@ export default function TerminalArea(): React.JSX.Element {
                 {s.assistantId && <span className="badge" data-custom-assistant={s.assistantId}>{s.assistantName ?? 'Custom assistant'}</span>}
                 {agents[s.id] && <span className={`badge ${agents[s.id]}`}>{agents[s.id]}</span>}
                 <span className="cell-path">{shortPath(s.cwd, 2)}</span>
-                {s.attention && <span className="dot attention" title="Output paused — check the terminal prompt" />}
+                {s.attention && <span className="dot attention" title={s.agentState === 'needs' ? 'Needs your answer' : s.agentState === 'done' ? 'Finished its turn' : 'Output paused — check the terminal prompt'} />}
                 <TerminalStatus session={s} />
                 {!s.assistantId && <button className="icon-btn tiny recovery-link" data-link-session={s.id}
                   title={s.resume ? `Recovery linked to ${s.resume.agent} ${s.resume.id}. Click to review.` : 'Link a saved chat for recovery. Plain terminals reopen their folder only.'}
@@ -353,6 +353,12 @@ export default function TerminalArea(): React.JSX.Element {
                 >
                   ✕
                 </button>
+              </div>
+            )}
+
+            {s.lastPrompt && (
+              <div className="cell-prompt" title={s.lastPrompt}>
+                <span>You asked</span><b>{s.lastPrompt.replace(/\s+/g, ' ')}</b>
               </div>
             )}
 

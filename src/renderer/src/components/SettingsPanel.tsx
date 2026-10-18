@@ -61,6 +61,7 @@ export default function SettingsPanel(): React.JSX.Element {
             <h4>Getting started</h4>
             <p className="muted">A short, click-through tour of terminals, layouts, pop-outs, recovery, and optional alerts.</p>
             <button className="btn" data-replay-tour onClick={() => useStore.setState({ settingsOpen: false, walkthroughOpen: true })}>Replay walkthrough</button>
+            <button className="btn" data-open-setup onClick={() => useStore.setState({ settingsOpen: false, setupOpen: true })}>Beginner setup: install Claude Code</button>
           </section>
           <AssistantSettings />
           <section>
@@ -221,7 +222,7 @@ export default function SettingsPanel(): React.JSX.Element {
             </label>
 
             <label className="field">
-              <span>Desktop notifications — {settings.desktopNotifications ? 'On' : 'Off'}<small>Off by default. Opt in to desktop alerts and window attention cues after 8 seconds without output following terminal input, or when its process exits. A pause is not confirmed completion. Limited to one pause alert per terminal every 30 seconds.</small></span>
+              <span>Desktop notifications — {settings.desktopNotifications ? 'On' : 'Off'}<small>Off by default. Claude and Codex chats opened by Buddy alert when they finish a turn, and Claude also alerts when it needs your answer. Other terminals alert after 8 seconds without output following terminal input (limited to one every 30 seconds), or when their process exits.</small></span>
               <input type="checkbox" checked={settings.desktopNotifications} onChange={(e) => void setSettings({ desktopNotifications: e.target.checked })} />
             </label>
             <button className="btn tiny" disabled={!settings.desktopNotifications} onClick={() => void window.buddy.app.testNotification().then((r) => notify(r.message)).catch(() => notify('The system could not display the test notification.'))}>Send test desktop alert</button>

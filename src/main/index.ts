@@ -15,7 +15,8 @@ import type {
   ScanProgress,
   SessionSpec,
   Settings,
-  Workspace
+  Workspace,
+  AgentState
 } from '@shared/types'
 import { validAssistantProfile, type AssistantProfile } from '@shared/types'
 import { detectShells } from './shells'
@@ -26,6 +27,8 @@ import { loadSettings, saveSettings, loadWorkspace, saveWorkspace, loadWindowIds
 import { TrayController, setTaskbarBadge, setJumpList } from './tray'
 import { probeAgents } from './agents'
 import { FeedService } from './session-feed'
+import { AgentHooks } from './agent-hooks'
+import { checkTools } from './beginner-setup'
 import { prepareRestore, restoreSpec, validate } from './session-restore'
 import { TerminalActivity, type TerminalAlert } from './terminal-activity'
 import { PopoutWindows } from './popouts'
@@ -63,18 +66,30 @@ let account: AccountService | null = null
 const activity = new TerminalActivity((alert) => {
   void showTerminalNotification(alert).catch(() => sendToSession(alert.id, 'app:notificationError', 'The system could not display a desktop notification.'))
 }, () => alertsEnabled)
-const ptys = new PtyManager(shells, activity)
+const agentHooks = new AgentHooks(join(app.getPath('userData'), 'agent-hooks'), reportAgentState)
+const ptys = new PtyManager(shells, activity, agentHooks)
 let activityTimer: NodeJS.Timeout | null = null
 const activeNotifications = new Map<string, Notification>()
+
+const ALERT_TITLES: Record<TerminalAlert['kind'], string> = { exit: 'process exited', quiet: 'output paused', needs: 'needs you', done: 'finished' }
+const ALERT_BODIES: Record<TerminalAlert['kind'], string> = {
+  exit: 'The terminal process ended. Click to inspect its output.',
+  quiet: 'No output for 8 seconds. It may be finished, paused, or waiting for an answer. Click to open the terminal.',
+  needs: 'Waiting for your answer. Click to open the terminal.',
+  done: 'Finished its turn. Click to see the result.'
+}
+
+function reportAgentState(id: string, state: AgentState, message?: string): void {
+  activity.agentState(id, state, message)
+  sendToSession(id, 'agent:state', id, state, message)
+}
 
 function showTerminalNotification(alert: TerminalAlert, test = false): Promise<{ ok: boolean; message: string }> {
   if (!Notification.isSupported()) return Promise.resolve({ ok: false, message: 'Desktop notifications are not supported on this system.' })
   return new Promise((resolve) => {
     const notification = new Notification({
-      title: test ? 'Terminal Buddy — test alert' : `${alert.title} — ${alert.kind === 'exit' ? 'process exited' : 'output paused'}`,
-      body: test ? 'Desktop alerts are ready. Click to return to Terminal Buddy.' : alert.kind === 'exit'
-        ? 'The terminal process ended. Click to inspect its output.'
-        : 'No output for 8 seconds. It may be finished, paused, or waiting for an answer. Click to open the terminal.',
+      title: test ? 'Terminal Buddy — test alert' : `${alert.title} — ${ALERT_TITLES[alert.kind]}`,
+      body: test ? 'Desktop alerts are ready. Click to return to Terminal Buddy.' : alert.message ?? ALERT_BODIES[alert.kind],
       icon: join(app.isPackaged ? process.resourcesPath : join(__dirname, '../..'), 'resources', 'icon.png')
     })
     activeNotifications.get(alert.id)?.close()
@@ -530,7 +545,8 @@ function registerIpc(): void {
       const id = file && /([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}).jsonl$/i.exec(file)?.[1]
       const resume = agent && file && id && current && !current.resume ? ptys.link(sessionId, { agent, id, path: file }, current.cwd).resume : undefined
       sendToSession(sessionId, 'feed:agent', sessionId, agent, resume)
-    }
+    },
+    reportAgentState
   )
   ipcMain.on('feed:attach', (e, sessionId: string, cwd: string, source?: FeedSource) => { if (ownsSession(e.sender, sessionId) && !ptys.describe(sessionId)?.session.assistantId) feeds?.attach(sessionId, cwd, source) })
   ipcMain.on('feed:detach', (e, sessionId: string) => { if (ownsSession(e.sender, sessionId)) feeds?.detach(sessionId) })
@@ -544,6 +560,7 @@ function registerIpc(): void {
     await clipboard.writeText(text)
   })
 
+  ipcMain.handle('setup:check', () => checkTools())
   ipcMain.on('app:openExternal', (_e, url: string) => {
     if (/^https?:\/\//i.test(url)) shell.openExternal(url).catch(() => undefined)
   })
@@ -583,7 +600,8 @@ if (!gotLock) {
     else revealWindow()
   })
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
+    await agentHooks.start()
     nativeTheme.themeSource = 'dark'
     // Must match electron-builder's appId, or Windows treats a pinned
     // shortcut and the running window as two different apps.

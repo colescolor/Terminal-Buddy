@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type {
+  AgentState,
   Catalog,
   ChatEntry,
   FeedEvent,
@@ -64,6 +65,7 @@ const api = {
     onData: (cb: (id: string, data: string, seq: number) => void): Unsub => on('pty:data', cb),
     onExit: (cb: (id: string, code: number) => void): Unsub => on('pty:exit', cb),
     onInfo: (cb: (id: string, patch: { pid: number }) => void): Unsub => on('pty:info', cb),
+    onAgentState: (cb: (id: string, state: AgentState, message?: string) => void): Unsub => on('agent:state', cb),
     probeAgents: (): Promise<Record<string, 'claude' | 'codex' | null>> =>
       ipcRenderer.invoke('pty:probeAgents')
   },
@@ -152,6 +154,8 @@ const api = {
       platform: string
     }> => ipcRenderer.invoke('app:paths'),
     openExternal: (url: string): void => ipcRenderer.send('app:openExternal', url),
+    /** Whether Git and Claude Code are installed, after picking up any PATH an installer just saved. */
+    checkTools: (): Promise<{ git: boolean; claude: boolean }> => ipcRenderer.invoke('setup:check'),
     /** Fleet state for the tray tooltip and the taskbar overlay badge. */
     setStatus: (total: number, waiting: number, badge: string | null): void =>
       ipcRenderer.send('app:status', total, waiting, badge),

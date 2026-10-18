@@ -2,6 +2,8 @@
 
 export type LayoutMode = 'tabs' | 'grid'
 export type Agent = 'claude' | 'codex'
+/** Reported by the agent itself (Claude hooks, Codex transcript), never inferred from silence. */
+export type AgentState = 'working' | 'needs' | 'done'
 
 /** User-configured CLI launcher. Built-in history parsers remain agent-specific. */
 export interface AssistantProfile { id: string; name: string; command: string }
@@ -90,6 +92,8 @@ export interface SessionInfo {
   title: string
   pid: number
   resume?: ResumeRef
+  /** Claude was launched with Buddy's hooks, so its state is reported rather than guessed. */
+  hooks?: boolean
 }
 
 export type SkillSource =
