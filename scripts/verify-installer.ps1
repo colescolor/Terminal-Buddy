@@ -10,10 +10,11 @@ Set-Content -LiteralPath $sentinel -Value 'Preserve existing settings and work'
 function Install-And-Check {
     $process = Start-Process -FilePath $setup -ArgumentList @('/S') -WindowStyle Hidden -Wait -PassThru
     if ($process.ExitCode -ne 0) { throw "Installer exited $($process.ExitCode)" }
-    $entries = Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall | Get-ItemProperty | Where-Object { $_.DisplayName -eq 'Terminal Buddy Subscription' }
+    $entries = Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall | Get-ItemProperty | Where-Object { $_.DisplayName -like 'Terminal Buddy Subscription*' }
     if (@($entries).Count -ne 1) { throw 'Expected one Windows uninstall entry' }
-    $script:installDirectory = $entries.InstallLocation
-    $script:uninstaller = $entries.UninstallString.Trim('"')
+    if ($entries.UninstallString -notmatch '^"([^"]+)"') { throw 'Unexpected uninstall command' }
+    $script:uninstaller = $Matches[1]
+    $script:installDirectory = Split-Path -Parent $uninstaller
     if (!(Test-Path (Join-Path $installDirectory 'Terminal Buddy Subscription.exe'))) { throw 'Installed executable missing' }
     $shell = New-Object -ComObject WScript.Shell
     foreach ($directory in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'))) {
@@ -28,7 +29,7 @@ Install-And-Check
 $env:BUDDY_EXE = Join-Path $installDirectory 'Terminal Buddy Subscription.exe'
 node scripts/verify-subscription-desktop.mjs
 if ($LASTEXITCODE -ne 0) { throw 'Installed application smoke test failed' }
-$process = Start-Process -FilePath $uninstaller -ArgumentList @('/S') -WindowStyle Hidden -Wait -PassThru
+$process = Start-Process -FilePath $uninstaller -ArgumentList @('/S', '/currentuser') -WindowStyle Hidden -Wait -PassThru
 if ($process.ExitCode -ne 0) { throw 'Uninstaller failed' }
 for ($attempt=0; $attempt -lt 30 -and (Test-Path $env:BUDDY_EXE); $attempt++) { Start-Sleep -Seconds 1 }
 if (Test-Path $env:BUDDY_EXE) { throw 'Uninstaller left the application installed' }
