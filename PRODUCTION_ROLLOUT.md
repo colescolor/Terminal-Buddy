@@ -107,3 +107,18 @@ Monitor failed webhook deliveries, reconciliation lag, auth delivery failures an
 For an incident, stop promoting new purchases while keeping account/help/portal and webhook processing available. Do not revoke existing paid entitlements, cancel customers or delete records merely to roll back a UI build. Restore only a compatible previously approved backend deployment; verify migrations and event reconciliation first. Existing running terminals must remain untouched.
 
 Possible costs: Stripe processing/Billing fees, Supabase and Netlify plan usage, Resend volume, code signing and any separately approved tax/monitoring service. No new paid service has been enabled. Consult the providers' current pricing before enabling a billable option.
+
+## Confirmed launch — October 18, 2026
+
+Production is published at https://terminalbuddy.to with Windows x64 and Apple Silicon/Intel Mac downloads. Website source: bff31fcee40031ddeff371a53d2e7e779d2d18b1. Netlify deployment: 6ad5249fcd49666d09858305. The prior production deployment was locked; the exact passing build was manually promoted, preserving manual publication control.
+
+Application packages: subscription-v0.2.0-beta.2, source 2fa61fbdbf65d5ad45bac10084c23c74a2f191c3, clean build manifests. Both native Mac jobs passed in Actions run 39160226282. All five new files plus both historic free files passed unauthenticated format/size/SHA-256 checks. Existing free binaries/tags remain unchanged.
+
+Billing backend: https://terminal-buddy-billing.netlify.app, deployment 6ad52528862125a6b8e3e395, with the Checkout default fix in source 2e5179b. The new Stripe account defaulted to Managed Payments, causing Checkout rejection without a product tax code. Checkout explicitly uses managed_payments.enabled=false to preserve the approved direct-merchant Stripe flow. This does not configure tax registrations or make Stripe merchant of record.
+
+Live customer, Checkout, repeated-click reuse, and portal creation succeeded for the owner's verified account without starting a trial or taking payment. A real Stripe checkout.session.expired event was received, signature-verified, reconciled, and persisted in the production database (evt_1US0HRGHmsvyAdG873T5tH5g); a fresh unpaid checkout was then prepared. This proves real event delivery, not successful payment/renewal. Real-money purchase and app automatic paid-state confirmation still require the owner to complete checkout.
+
+Production smoke checks passed: public routes/config, unauthorized account/admin rejection, origin rejection, webhook signature rejection, indexable marketing pages, canonical/sitemap consistency, and real 404 behavior. 32 billing tests, 13 account tests, typecheck/build, Windows packaged startup/native PTY, both Mac packaged/native PTY checks, 10 website unit tests, and all 21 website browser cases passed (two copy/mobile failures were fixed and their cases rerun). Screenshot evidence is local under artifacts/ and the native Actions artifacts.
+
+MIT declarations remain unchanged. The subscription is for this edition's hosted account access, not a proprietary relicensing. Windows remains unsigned; Mac remains ad-hoc signed without verified notarization. Personal-Mac installation/provider authentication and final legal/tax review are not claimed as completed. The custom first-subscriber Resend outbox has no credential configured. Stripe successful-payment email notifications are enabled in the owner account preferences; these cover payments rather than a custom first-subscription-only email. Core billing does not depend on notification delivery.
+
