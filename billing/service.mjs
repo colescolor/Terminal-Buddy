@@ -1,15 +1,18 @@
 import {createHash,randomBytes,randomUUID,sign} from 'node:crypto'
 import {lockedAccount,saveBilling} from './db.mjs'
 import {accessFor,DAY} from './policy.mjs'
+import {queueSubscriberAlerts} from './subscriber-alerts.mjs'
 const hash=value=>createHash('sha256').update(value).digest('base64url')
 const fail=(message,status=400)=>{throw Object.assign(Error(message),{status})}
 const idOf=v=>typeof v==='string'?v:v?.id
-export function service({db,stripe,verifyUser,privateKey,origin,now=Date.now,offlineDays=7,graceDays=3}) {
+export function service({db,stripe,verifyUser,privateKey,origin,now=Date.now,offlineDays=7,graceDays=3,alerts}) {
  if(!Number.isInteger(offlineDays)||offlineDays<0||offlineDays>7||!Number.isInteger(graceDays)||graceDays<0||graceDays>7)throw Error('Invalid access policy.')
  const sync=async(account,tx)=>{
   const b=account.billing
   if(b.customerId){const snapshot=await stripe.snapshot(b.customerId);if(snapshot.duplicate)fail('Multiple subscriptions need support review.',409)
-   account.billing={...b,...snapshot,syncedAt:now(),confirming:snapshot.status==='incomplete'};await saveBilling(tx,account.id,account.billing)}
+   account.billing={...b,...snapshot,syncedAt:now(),confirming:snapshot.status==='incomplete'}
+   queueSubscriberAlerts(account,snapshot.paidSubscriptionIds,now())
+   await saveBilling(tx,account.id,account.billing)}
   return account
  }
  const status=account=>{
@@ -107,14 +110,21 @@ export function service({db,stripe,verifyUser,privateKey,origin,now=Date.now,off
    const supported=/^(customer.subscription.(created|updated|deleted|paused|resumed)|invoice.(paid|payment_failed|payment_action_required)|checkout.session.(completed|async_payment_succeeded|async_payment_failed|expired))$/.test(event.type)
    if(!supported)return {ignored:true}
    const customer=idOf(event.data.object.customer)
-   return db.transaction(async tx=>{
+   const result=await db.transaction(async tx=>{
     const inserted=await tx.query('INSERT INTO processed_events(id,event_type,processed_at) VALUES($1,$2,$3) ON CONFLICT DO NOTHING RETURNING id',[event.id,event.type,now()])
     if(!inserted.rows.length)return {duplicate:true}
     const rows=await tx.query("SELECT * FROM accounts WHERE billing->>'customerId'=$1 FOR UPDATE",[customer])
     if(rows.rows[0])await sync(rows.rows[0],tx)
     return {received:true}
    })
+   // Payment state is committed before optional email. Delivery failure cannot
+   // deny access or undo a payment; duplicate webhooks can retry the outbox.
+   if(alerts)try{
+    const r=await db.query("SELECT id FROM accounts WHERE billing->>'customerId'=$1",[customer])
+    if(r.rows[0])await alerts.flushAccount(r.rows[0].id)
+   }catch{console.warn('Subscriber alert pending retry.')}
+   return result
   },
-  async reconcile(){const r=await db.query("SELECT id FROM accounts WHERE billing->>'customerId' IS NOT NULL");for(const row of r.rows)await lockedAccount(db,row.id,sync);return {accounts:r.rows.length}}
+  async reconcile(){const r=await db.query("SELECT id FROM accounts WHERE billing->>'customerId' IS NOT NULL");for(const row of r.rows)await lockedAccount(db,row.id,sync);if(alerts)await alerts.flushPending();return {accounts:r.rows.length}}
  }
 }

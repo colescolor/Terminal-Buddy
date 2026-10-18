@@ -21,6 +21,7 @@ export function stripeGateway(env, injectedClient) {
    const active=relevant.find(s=>!['canceled','incomplete_expired'].includes(s.status))
    const blockers=subscriptions.data.filter(s=>!['canceled','incomplete_expired'].includes(s.status))
    let paidThrough=0
+   const paidSubscriptionIds=new Set()
    for(const invoice of invoices.data){
     const subscription=invoice.parent?.subscription_details?.subscription||invoice.subscription
     const id=typeof subscription==='string'?subscription:subscription?.id
@@ -30,13 +31,13 @@ export function stripeGateway(env, injectedClient) {
     else lines.push(...invoice.lines.data)
     for(const line of lines){
      const price=line.pricing?.price_details?.price||line.price?.id
-     if(price===priceId&&line.amount>0)paidThrough=Math.max(paidThrough,line.period.end*1000)
+     if(price===priceId&&line.amount>0){paidThrough=Math.max(paidThrough,line.period.end*1000);paidSubscriptionIds.add(id)}
     }
    }
    return {status:active?.status||'canceled',subscriptionId:active?.id||null,
     cancelAtPeriodEnd:!!active?.cancel_at_period_end,paidThrough,
     duplicate:blockers.length>1,
-    hasSubscription:blockers.length>0,knownSubscriptionIds:relevant.map(s=>s.id)}
+    hasSubscription:blockers.length>0,knownSubscriptionIds:relevant.map(s=>s.id),paidSubscriptionIds:[...paidSubscriptionIds]}
   },
   checkoutStatus:id=>stripe.checkout.sessions.retrieve(id),
   async checkout(account,billing,origin){

@@ -32,6 +32,7 @@ test('Stripe adapter validates the fixed price, sends no trial, and reads paid p
  assert.equal(captured.body.subscription_data.trial_period_days,undefined)
  assert.equal(captured.options.idempotencyKey,'buddy-checkout-v2-account-0')
  assert.equal((await api.snapshot('cus_server')).paidThrough,1800000000000)
+ assert.deepEqual((await api.snapshot('cus_server')).paidSubscriptionIds,['sub_correct'])
  for(const patch of [{unit_amount:700},{currency:'eur'},{livemode:true},{active:false},{recurring:{interval:'year',interval_count:1}}]){
   const old=price;price={...old,...patch};await assert.rejects(api.checkout({id:'account'},{customerId:'cus_server'},'https://billing.example.invalid'),/Price must/);price=old
  }

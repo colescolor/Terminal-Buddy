@@ -1,7 +1,7 @@
 # Terminal Buddy future billing — local TEST implementation
 
 ## Status and boundaries
-Version 0.2.0-beta.1, local branch development/paid-release-local. Authorized TEST backend is deployed; see STACK_SETUP.md for observed status and exact project/deploy IDs. No Git push, live charge or paid application release was performed. Current free edition behavior and website remain unchanged. Main app LICENSE, MIT metadata, copyright field and old release files remain unchanged. Commercial release is blocked by release-approvals.json and scripts/check-commercial-release.mjs.
+Version 0.2.0-beta.1, prepared on development/paid-release-local. The owner authorized pushing the completed source to main on 2026-10-17. The authorized TEST backend is deployed; see STACK_SETUP.md and BILLING_TEST_RESULTS.md for observed status. No live charge or paid application release was performed. Current free edition behavior and website remain unchanged. Main app LICENSE, MIT metadata, copyright field and old release files remain unchanged. Commercial release is blocked by release-approvals.json and scripts/check-commercial-release.mjs; permission to push source does not approve unspecified legal terms.
 
 Backend packages are isolated in billing/package.json and lockfile: Stripe 23.0.0 (SDK stable API 2026-09-30.endive), pg 8.23.1, Supabase JS 2.118.0. PGlite 0.5.10 is local/test only. No Stripe/database/admin secret is used in Electron. Existing app dependencies were not upgraded.
 The owner has selected Netlify, Supabase, Stripe and Resend. See STACK_SETUP.md for the ordered connection checklist, SMTP email template, read-only owner dashboard, setup checks and partial provider connection evidence.
@@ -100,6 +100,23 @@ node scripts/check-commercial-release.mjs
 Fresh files live only in this worktree's release/. They are local free/test binaries with future version, not an approved paid release. The package verifier checks app version/license, renderer+external notices, Chromium notice presence and obvious secret patterns, then hashes only new files. Manifest includes source commit and dirty status; dirty or mismatched builds cannot pass commercial checks. Review and commit exact future source, rebuild, verify and tag only that new matching commit after authorization. Never move v0.1.18.
 On Windows the package verifier requires PowerShell 7 (`pwsh.exe`) and the existing electron-winstaller 7-Zip tool. It extracts each installer/portable payload without installing it, compares embedded application and notices, and measures PE product version and Authenticode status. The local binaries are unsigned. See BILLING_TEST_RESULTS.md for the observed tests and remaining provider validation.
 The commercial gate intentionally fails until legal/terms/copyright/support/privacy/refund-tax/offline-grace/signing/installer-notice/provider-test/production approvals exist and a deliberate production implementation replaces the test-only restriction. No live key can enable this scaffold by itself.
+
+## Subscriber email alerts
+
+The owner requested new-subscriber emails. `billing/subscriber-alerts.mjs` queues one alert per subscription after Stripe reconciliation finds a paid invoice for the configured plan. A trial, open Checkout, failed payment, or subsequent renewal does not create another alert. A returning customer buying a new subscription generates a new alert. Historical paid subscriptions first discovered by reconciliation also count; review pending records before enabling email for an existing customer database.
+
+Set these three server-only variables on the separate billing Netlify project:
+- `RESEND_API_KEY`: a new Sending-access API key restricted to the already verified `auth.terminalbuddy.to` domain. Keep the Supabase SMTP key separate.
+- `SUBSCRIBER_ALERT_FROM`: an address on that verified domain, for example `notifications@auth.terminalbuddy.to`.
+- `SUBSCRIBER_ALERT_TO`: the owner's confirmed email address, not a browser-supplied value.
+
+The fields remain blank in `.env.example`. With no configuration, billing still works and alerts remain pending. Do not put the API key in chat, Git, the website or the Electron bundle. All messages currently say TEST; the backend still rejects live payments.
+
+Webhook reconciliation commits paid access and the durable alert before attempting email. A database lease and stable Resend idempotency key suppress concurrent sends. The original message is retained for retries. Resend acceptance marks it sent; this does not prove inbox delivery. The scheduled Netlify function retries up to five accounts every five minutes; it needs the same server variables and runs only on the project's published deploy. An ambiguous attempt older than 23 hours becomes `review` to avoid retrying after Resend's 24-hour idempotency window. Inspect Resend delivery history before any manual resend. No new database table or browser grants are needed.
+
+Verify with `npm --prefix billing test`, deploy the test backend, then complete a Stripe sandbox purchase and check actual delivery. Automated tests use a fake email provider and do not send mail. Real delivery remains unverified until a restricted sending key and recipient are configured.
+
+References: https://resend.com/docs/api-reference/emails/send-email, https://resend.com/docs/dashboard/emails/idempotency-keys, https://docs.netlify.com/build/functions/scheduled-functions/
 
 ## Official references
 - https://docs.stripe.com/payments/checkout/build-subscriptions
