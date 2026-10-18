@@ -14,6 +14,7 @@ billing/public/
 artifacts/
 resources/THIRD_PARTY_LICENSES.txt
 resources/third-party-manifest.json
+resources/LICENSES.chromium.html
 
 # Local credentials and machine-specific configuration
 .env

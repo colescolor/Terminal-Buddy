@@ -10,5 +10,5 @@
   "installerDependencyReviewApproved": false,
   "signingStatusApproved": false,
   "realStripeSandboxPassed": true,
-  "productionAuthorized": false
+  "productionAuthorized": true
 }

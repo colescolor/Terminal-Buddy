@@ -23,7 +23,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run typecheck && npm run test:platform && npm run test:settings && npm run test:alerts && npm run test:submit && npm run test:screen && npm run test:mac-downloads
+      - run: npm run typecheck && npm run test:account && npm run test:platform && npm run test:settings && npm run test:alerts && npm run test:submit && npm run test:screen && npm run test:mac-downloads
       # Explicit ad-hoc signing is for test betas only, not Developer ID trust.
       - run: npm run dist:mac:beta -- --${{ matrix.arch }}
         env:

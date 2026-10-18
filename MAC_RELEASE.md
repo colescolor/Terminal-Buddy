@@ -1,5 +1,13 @@
 # macOS release handoff
 
+## Launch work — October 17, 2026
+
+The owner authorized launch and Mac preparation. `productionAuthorized` records that authorization; it is not evidence of a final seller identity, live Stripe credentials, or Apple signing. The current source is **0.2.0-beta.1**, still the free MIT edition with subscription enforcement disabled. Earlier version-specific notes below are historical.
+
+Native Apple Silicon and Intel builds started in [run 39097212867](https://github.com/colescolor/Terminal-Buddy/actions/runs/39097212867) from `b0375c6`. A packaging correction adds Chromium notices inside the app and checks the bundled package version, application license, runtime notices, secret patterns and clean source commit. Rebuild after that correction before distributing anything.
+
+The repository has no Actions secrets configured. Developer ID signing and notarization are therefore unavailable. Ad-hoc artifacts must be labeled experimental; they must not be advertised as notarized or as the paid edition. The existing Windows v0.1.18 download and all prior license grants stay unchanged.
+
 ## Current evidence
 
 - Desktop source version: 0.1.18. Electron 44.2 requires macOS 13 Ventura or later.

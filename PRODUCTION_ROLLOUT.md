@@ -1,5 +1,7 @@
 # Subscription rollout — prepared, not enabled
 
+October 17: the owner explicitly authorized launch, recorded by `productionAuthorized: true`. Other flags describe still-missing decisions/evidence, not another request for general launch permission. Read-only inspection found only the test billing Netlify site and the static marketing site, a sandbox Stripe key, and no GitHub signing secrets. Real payment credentials and the legal seller/copyright identity have not been supplied; the sandbox's test business name is not proof of that identity.
+
 The owner-operated Link test is paid and the isolated desktop observed paid access. The new app also reconciles automatically: one shared background worker checks on startup, at most once per 15 seconds on focus, every five seconds during the ten-minute Checkout observation window, then every five minutes. It coalesces requests, preserves bounded verified access during outages, and broadcasts updates to all account views. **Check again** is a fallback. A URL query never grants access.
 
 ## Work prepared locally

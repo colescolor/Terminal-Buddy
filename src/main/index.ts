@@ -316,7 +316,7 @@ function registerIpc(): void {
       signIn: () => account!.signIn(), startTrial: () => account!.startTrial(),
       refresh: () => account!.refresh(), subscribe: () => account!.subscribe(true),
       manage: () => account!.manage(), signOut: () => account!.signOut(), support: () => account!.support()
-      ,chromium: () => shell.openPath(app.isPackaged ? join(process.resourcesPath, '..', 'LICENSES.chromium.html') : join(__dirname, '../..', 'node_modules/electron/dist/LICENSES.chromium.html'))
+      ,chromium: () => shell.openPath(app.isPackaged ? join(process.resourcesPath, 'resources', 'LICENSES.chromium.html') : join(__dirname, '../..', 'resources/LICENSES.chromium.html'))
     }
     if (typeof action !== 'string' || !Object.hasOwn(actions, action)) throw Error('Unknown account action.')
     const result=await actions[action]()

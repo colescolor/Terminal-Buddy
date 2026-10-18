@@ -4,6 +4,9 @@ import { createReadStream } from 'node:fs'
 import { copyFile, mkdir, open, readFile, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 function run(command, args) {
@@ -45,12 +48,34 @@ export async function verifyNativeMac({ releaseDir, version, architecture, input
   const signature = run('/usr/bin/codesign', ['-dv', '--verbose=4', app])
   const signing = signature.includes('Signature=adhoc') ? 'ad-hoc' :
     signature.includes('Authority=Developer ID Application:') ? 'developer-id' : 'other'
+  const resources = join(app, 'Contents', 'Resources')
+  const asar = require('@electron/asar')
+  const archive = join(resources, 'app.asar')
+  const metadata = JSON.parse(asar.extractFile(archive, 'package.json'))
+  if (metadata.version !== version) throw Error('Bundled package version differs from app version')
+  const originalLicense = await readFile(join(project, 'LICENSE'), 'utf8')
+  if (asar.extractFile(archive, 'LICENSE').toString().replaceAll('\r\n','\n') !== originalLicense.replaceAll('\r\n','\n')) throw Error('Application license was not retained')
+  const notice = JSON.parse(await readFile(join(resources, 'resources', 'third-party-manifest.json'), 'utf8'))
+  if (notice.applicationVersion !== version || notice.issues.length) throw Error('Third-party notices are incomplete or stale')
+  for (const name of ['react','react-dom','scheduler','zustand','@xterm/xterm','@lydell/node-pty','electron']) {
+    if (!notice.entries.some(entry => entry.name === name)) throw Error('Missing runtime notice: ' + name)
+  }
+  if ((await stat(join(resources, 'resources', 'LICENSES.chromium.html'))).size < 1000) throw Error('Missing accessible Chromium notices')
+  for (const file of [join('out','main','index.js'),join('out','preload','index.js')]) {
+    const code = asar.extractFile(archive, file).toString()
+    if (code !== await readFile(join(project, file),'utf8')) throw Error('Package code differs from current source build')
+    if (/(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{12,}|whsec_[A-Za-z0-9]{12,}|BEGIN PRIVATE KEY/.test(code)) throw Error('Potential secret in packaged code')
+  }
+  if (asar.listPackage(archive).some(file => /(?:^|[\\/])(?:billing|\.local|tests)(?:[\\/])|(?:^|[\\/])\.env$/.test(file))) throw Error('Unexpected private/backend files in app')
+  const sourceCommit = run('git', ['rev-parse', 'HEAD']).trim()
+  if (run('git', ['status', '--porcelain']).trim()) throw Error('Mac release source must be clean and committed')
   for (const asset of inputs) {
     if (asset.extension === 'dmg') run('/usr/bin/hdiutil', ['verify', asset.path])
     else run('/usr/bin/unzip', ['-tq', asset.path])
   }
   // Container integrity and signing do not establish notarization or downloaded-app launch.
-  return { minimumOS, signing, notarization: 'not-verified', containerIntegrity: 'passed', bundleArchitecture: architecture }
+  return { minimumOS, signing, notarization: 'not-verified', containerIntegrity: 'passed', bundleArchitecture: architecture,
+    sourceCommit, packageVersion: metadata.version, applicationLicense: metadata.license, runtimeNotices: 'passed', chromiumNotices: 'passed' }
 }
 
 export async function prepareMacDownloads({ releaseDir, version, architecture, licensePath }, verifyNative = verifyNativeMac) {

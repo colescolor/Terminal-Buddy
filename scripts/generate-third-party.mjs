@@ -1,4 +1,4 @@
-import {readFile,writeFile,mkdir,readdir,appendFile} from 'node:fs/promises'
+import {readFile,writeFile,mkdir,readdir,appendFile,copyFile} from 'node:fs/promises'
 import {join,resolve} from 'node:path'
 import {createHash} from 'node:crypto'
 const pkg=JSON.parse(await readFile('package.json','utf8'))
@@ -24,6 +24,9 @@ while(queue.length){
 }
 entries.sort((a,b)=>a.name.localeCompare(b.name))
 await mkdir('resources',{recursive:true})
+// Electron's macOS distribution keeps this outside the .app. Copy it explicitly
+// into our packaged resources so both DMG and ZIP include an accessible notice.
+await copyFile('node_modules/electron/dist/LICENSES.chromium.html','resources/LICENSES.chromium.html')
 await writeFile('resources/THIRD_PARTY_LICENSES.txt','Terminal Buddy '+pkg.version+' — third-party software\n\nThese notices apply to the named components, not to all application code.\nChromium and its embedded libraries: see LICENSES.chromium.html beside the installed executable, also available from Settings → Account → Chromium notices.\n\n'+entries.map(e=>e.name+' '+e.version+' ('+e.license+')\n'+'='.repeat(60)+'\n'+e.text).join('\n\n'))
 await writeFile('resources/third-party-manifest.json',JSON.stringify({applicationVersion:pkg.version,entries:entries.map(({text,...entry})=>entry),issues},null,2)+'\n')
 await appendFile('resources/THIRD_PARTY_LICENSES.txt','\n\nNSIS installer distribution 3.0.4.1\nExternal installer plugins require separate review.\n\n'+await readFile('resources/third-party/NSIS-3.0.4.1-COPYING.txt','utf8'))
