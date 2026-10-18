@@ -2,6 +2,7 @@ import {createHash,randomBytes,randomUUID,sign} from 'node:crypto'
 import {lockedAccount,saveBilling} from './db.mjs'
 import {accessFor,DAY} from './policy.mjs'
 import {queueSubscriberAlerts} from './subscriber-alerts.mjs'
+import {webhookEvents} from './webhook-events.mjs'
 const hash=value=>createHash('sha256').update(value).digest('base64url')
 const fail=(message,status=400)=>{throw Object.assign(Error(message),{status})}
 const idOf=v=>typeof v==='string'?v:v?.id
@@ -116,7 +117,7 @@ export function service({db,stripe,verifyUser,privateKey,origin,now=Date.now,off
   async webhook(raw,signature){
    let event;try{event=stripe.verifyEvent(raw,signature)}catch{fail('Invalid webhook signature.',400)}
    if(event.livemode!==live)fail('Webhook environment mismatch.',400)
-   const supported=/^(customer.subscription.(created|updated|deleted|paused|resumed)|invoice.(paid|payment_failed|payment_action_required)|checkout.session.(completed|async_payment_succeeded|async_payment_failed|expired))$/.test(event.type)
+   const supported=webhookEvents.includes(event.type)
    if(!supported)return {ignored:true}
    const customer=idOf(event.data.object.customer)
    const result=await db.transaction(async tx=>{

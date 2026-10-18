@@ -1,6 +1,7 @@
 appId: com.terminalbuddy.app
 productName: Terminal Buddy
 copyright: MIT
+beforePack: ./scripts/check-package-edition.cjs
 
 directories:
   output: release

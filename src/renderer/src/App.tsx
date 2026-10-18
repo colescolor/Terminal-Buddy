@@ -1,3 +1,4 @@
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from '@shared/support'
 import { useEffect, useRef, useState } from 'react'
 import { TopBar, TabBar } from './components/Chrome'
 import TerminalArea from './components/TerminalArea'
@@ -328,6 +329,13 @@ export default function App(): React.JSX.Element {
       </div>
 
       {broadcast && <div className="broadcast-strip">Broadcast on — every keystroke goes to all terminals</div>}
+      <footer className="support-footer">
+        <span>Need help?</span>
+        <a href={SUPPORT_MAILTO} onClick={(event) => {
+          event.preventDefault()
+          window.buddy.app.openExternal(SUPPORT_MAILTO)
+        }}>{SUPPORT_EMAIL}</a>
+      </footer>
       {!newSessionOpen && !presetsOpen && <div className="launch-error-banner"><LaunchRecovery /></div>}
       {transferHover && <div className="transfer-hover">Release to move this terminal here</div>}
       {transferBusy && <div className="transfer-busy" role="status">Moving terminals…</div>}

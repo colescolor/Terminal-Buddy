@@ -1,0 +1,14 @@
+extends: ./electron-builder.yml
+appId: com.terminalbuddy.subscription
+productName: Terminal Buddy Subscription
+copyright: "Copyright (c) 2026 Terminal Buddy contributors"
+directories:
+  output: release-commercial
+nsis:
+  shortcutName: Terminal Buddy Subscription
+win:
+  artifactName: Terminal-Buddy-Subscription-${version}-${arch}.${ext}
+portable:
+  artifactName: Terminal-Buddy-Subscription-${version}-portable.${ext}
+mac:
+  artifactName: Terminal-Buddy-Subscription-${version}-mac-${arch}.${ext}

@@ -1,0 +1,15 @@
+Terminal Buddy account-service privacy information — Eric Colton Newman
+
+This page describes the optional subscription edition's account and billing service. The earlier free desktop releases are not given new account requirements or telemetry by this service. Website privacy information is available at https://terminalbuddy.to/privacy/.
+
+Signing in sends your email address and verification requests to Supabase Auth. Resend delivers the sign-in emails through the configured SMTP service. Supabase/Postgres holds your verified account ID and email, trial dates, access status, desktop sign-in challenges and hashed session-token references. Trial activation is associated with your account so reinstalling does not reset it.
+
+Stripe collects payment information on its hosted Checkout and customer-portal pages. The account service stores Stripe customer, subscription, Checkout and event references, payment/access status and paid-through dates. It does not store card numbers or full payment-event payloads. Stripe, Supabase, Resend and Netlify process the data needed to provide their services and may process IP addresses and operational logs under their own policies.
+
+The desktop app sends account-status and billing requests to this service. It does not send code, chat histories, project paths, terminal output, Claude/Codex credentials or device fingerprints for licensing. Account tokens and cached access records use OS-backed encrypted storage when available; otherwise account credentials remain in memory. Your chosen coding agent has its own network behavior and privacy terms.
+
+Authorized owner accounts can view account emails, trial dates, billing/access status and reconciliation timestamps. Private recovery requests store the verified contact address, claimed original account address, explanation, replies and review status. Recovery requests do not automatically transfer an account. Do not include passwords, verification codes, identity documents, card details or project content in these requests. Requesters check the recovery page for replies; it does not currently email reply notifications.
+
+Account, billing and recovery records are used to provide access, prevent trial resets, resolve support requests and reconcile payments. Contact cole@terminalbuddy.to to request access, correction or deletion. Requests require appropriate ownership verification; records may need to be retained for outstanding subscriptions, disputes or legal obligations. This page does not promise immediate erasure of payment-provider records or backups.
+
+No advertising pixels, session replay, marketing mailing list or desktop analytics are introduced by this account service. The selected provider's services remain separate. For questions, contact cole@terminalbuddy.to or https://terminalbuddy.to/contact/.

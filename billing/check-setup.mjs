@@ -2,6 +2,8 @@ import {configurationIssues} from './setup-check.mjs'
 import {stripeGateway} from './stripe.mjs'
 import {Pool} from 'pg'
 import {databaseConnection} from './connection.mjs'
+import {postgres} from './db.mjs'
+import {databaseSchema} from './schema.mjs'
 const issues=configurationIssues(process.env)
 if(process.argv.includes('--require-owner')&&!process.env.OWNER_USER_IDS?.trim())issues.push('OWNER_USER_IDS: missing; owner dashboard remains disabled')
 if(issues.length){for(const issue of issues)console.log('BLOCKED: '+issue);process.exitCode=1}
@@ -15,9 +17,10 @@ else{
    await stripeGateway(process.env).validatePrice()
    console.log('PASS: Stripe returned the configured active USD 6/month price in the selected environment.')
    pool=new Pool({...databaseConnection(process.env),max:1,connectionTimeoutMillis:8000,statement_timeout:10000})
-   await pool.query('SELECT id,trial_started_at,trial_ends_at,billing FROM accounts LIMIT 0')
-   for(const table of ['desktop_sessions','device_flows','processed_events','recovery_requests'])await pool.query('SELECT 1 FROM '+table+' LIMIT 0')
-   const rls=await pool.query("SELECT relname,relrowsecurity FROM pg_class WHERE oid IN ('accounts'::regclass,'desktop_sessions'::regclass,'device_flows'::regclass,'processed_events'::regclass,'recovery_requests'::regclass)")
+   const db=postgres(pool,{schema:databaseSchema(process.env)})
+   await db.query('SELECT id,trial_started_at,trial_ends_at,billing FROM accounts LIMIT 0')
+   for(const table of ['desktop_sessions','device_flows','processed_events','recovery_requests'])await db.query('SELECT 1 FROM '+table+' LIMIT 0')
+   const rls=await db.query("SELECT relname,relrowsecurity FROM pg_class WHERE oid IN ('accounts'::regclass,'desktop_sessions'::regclass,'device_flows'::regclass,'processed_events'::regclass,'recovery_requests'::regclass)")
    if(rls.rows.length!==5||rls.rows.some(r=>!r.relrowsecurity))throw Error()
    console.log('PASS: billing schema is readable and RLS is enabled. Verify backend role grants and Supabase public-role denial separately.')
   }catch{console.log('BLOCKED: provider/schema check failed. Check dashboard configuration and migrations; sensitive provider details were not logged.');process.exitCode=1}

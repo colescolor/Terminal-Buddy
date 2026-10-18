@@ -1,5 +1,7 @@
 {
-  "futureVersion": "0.2.0-beta.1",
+  "futureVersion": "0.2.0-beta.2",
+  "requestedLicenseStrategy": "commercial-future-release",
+  "approvedDatabaseStrategy": "existing-supabase-isolated-production-schema",
   "commercialLicenseApproved": false,
   "commercialTermsApproved": false,
   "approvedCopyrightHolder": "",
@@ -10,5 +12,6 @@
   "installerDependencyReviewApproved": false,
   "signingStatusApproved": false,
   "realStripeSandboxPassed": true,
-  "productionAuthorized": true
+  "productionAuthorized": true,
+  "currentReleaseLicenseDisposition": "preserve-existing-MIT; no proprietary license applied"
 }

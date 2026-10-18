@@ -42,6 +42,8 @@ Keep terminalbuddy.to static. Use a separate approved Netlify test billing proje
 A separate test project is deployed at https://terminal-buddy-billing-test.netlify.app with account page /account/ and no connected Git repository. Never silently connect production main or add DNS records. Account pages remain noindex. Function/auth/database usage can have plan limits and cost; Stripe processing fees apply only to eventual live payments. Owner must approve plans, quotas and spending separately.
 
 ## Environment and migrations
+October 18 update: the owner approved reusing the Supabase project with a separate production schema and restricted database login. Set `DATABASE_SCHEMA=public` for the existing sandbox and `DATABASE_SCHEMA=terminal_buddy_live` for live mode. Production cannot fall back to sandbox tables. The schema must already exist and be accessible to the migration role; the migration runs transactionally on one connection and confirms the schema before applying DDL. Runtime queries use transaction-local schema selection, compatible with transaction pooling. Never deploy the administrator database URL. See PRODUCTION_ROLLOUT.md for the applied production isolation checks and the subsequently approved standard Netlify credential storage, now configured and verified on the isolated production site.
+
 Copy billing/.env.example to an untracked .env and populate TEST credentials only:
 - STRIPE_SECRET_KEY: sk_test_ key, server only; sk_live_ rejected.
 - STRIPE_WEBHOOK_SECRET: test webhook signing secret, server only.
@@ -132,3 +134,6 @@ References: https://resend.com/docs/api-reference/emails/send-email, https://res
 - https://www.electronjs.org/docs/latest/api/safe-storage
 - https://www.electronjs.org/docs/latest/tutorial/security
 - https://docs.netlify.com/build/functions/overview/
+# Current subscription beta
+
+Production setup and current package commands are in [SUBSCRIPTION_RELEASE.md](SUBSCRIPTION_RELEASE.md). The live service uses the isolated `terminal_buddy_live` schema in the existing Supabase project. The current subscription beta preserves existing software licenses; earlier proprietary-license preparation instructions below are not the current release path.

@@ -1,6 +1,6 @@
 # Terminal Buddy subscription policy draft — NOT FOR PUBLICATION
 
-Prepared for the next opt-in release. This is a review draft, not accepted customer terms or a legal determination. The legal operator, jurisdiction, contact details and approved license have not been supplied. No existing license or prior release is changed by this document.
+Prepared for the next opt-in release. This is a review draft, not accepted customer terms or a legal determination. On October 18 the owner identified the intended seller as Eric Colton Newman, superseding the earlier LLC names. Jurisdiction, required contact details and the future licensing decision remain unresolved. Seller identity is not proof of copyright ownership. No existing license or prior release is changed by this document.
 
 ## Proposed customer-facing offer
 

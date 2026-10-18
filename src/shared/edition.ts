@@ -1,11 +1,10 @@
-// Build-time configuration only. Changing environment variables cannot enable a packaged paid edition.
-// Release approval gates must pass before these values are deliberately changed.
+// Separate opt-in subscription build; historical free releases and licenses are unchanged.
 export const EDITION = {
- kind: 'free' as 'free' | 'commercial',
- commercialApproved: false,
- enforcement: false,
- billingOrigin: '',
- entitlementPublicKey: '',
- entitlementIssuer: 'terminal-buddy-test',
- supportUrl: 'https://github.com/colescolor/Terminal-Buddy/issues'
+  "kind": "commercial",
+  "commercialApproved": true,
+  "enforcement": true,
+  "billingOrigin": "https://terminal-buddy-billing.netlify.app",
+  "entitlementPublicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAlLfuf7QoW4OFah7C5Hts0lBcQ5cgaX6LRhU+odX3r8Q=\n-----END PUBLIC KEY-----\n",
+  "entitlementIssuer": "terminal-buddy",
+  "supportUrl": "https://terminalbuddy.to/contact/"
 }

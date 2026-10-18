@@ -34,7 +34,7 @@ if(release.liveApproved){
 // No secret configuration is inserted into the browser bundle.
 const js=await readFile('public/account.js','utf8')+await readFile('public/admin.js','utf8')
 if(/sk_live_|sk_test_[A-Za-z0-9]{12}|whsec_[A-Za-z0-9]{12}|BEGIN PRIVATE KEY/.test(js))throw Error('Secret in browser bundle')
-console.log('Built static test account and owner pages. Environment configuration remains server-side.')
+console.log('Built static '+(release.liveApproved?'production':'test')+' account and owner pages. Environment configuration remains server-side.')
 let authOrigin=''
 if(process.env.SUPABASE_URL){const u=new URL(process.env.SUPABASE_URL);if(u.protocol!=='https:')throw Error('Supabase origin must be HTTPS');authOrigin=u.origin}
 await writeFile('public/_headers', "/*\n  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' "+authOrigin+"; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'\n")

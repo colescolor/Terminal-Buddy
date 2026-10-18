@@ -1,8 +1,7 @@
-// Reviewed build-time configuration. Environment variables alone cannot enable live payments.
-// Populate only through the approved release preparation workflow.
-export const release = Object.freeze({
- liveApproved: false,
- billingOrigin: '',
- supabaseOrigin: '',
- stripeAccountId: ''
+// Owner-authorized live account service. Software licenses are unchanged.
+export const release=Object.freeze({
+  "liveApproved": true,
+  "billingOrigin": "https://terminal-buddy-billing.netlify.app",
+  "supabaseOrigin": "https://xfqgvzcyqgbyuwpyubmk.supabase.co",
+  "stripeAccountId": "acct_1URyoaGHmsvyAdG8"
 })

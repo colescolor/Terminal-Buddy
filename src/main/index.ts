@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme, Menu, clipboard, nativeImage, Notification } from 'electron'
+import { SUPPORT_MAILTO } from '@shared/support'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { AccountService } from './account-service'
@@ -315,7 +316,8 @@ function registerIpc(): void {
     const actions: Record<string, () => unknown> = {
       signIn: () => account!.signIn(), startTrial: () => account!.startTrial(),
       refresh: () => account!.refresh(), subscribe: () => account!.subscribe(true),
-      manage: () => account!.manage(), signOut: () => account!.signOut(), support: () => account!.support()
+      manage: () => account!.manage(), signOut: () => account!.signOut(), support: () => account!.support(),
+      terms: () => account!.policy('terms'), privacy: () => account!.policy('privacy')
       ,chromium: () => shell.openPath(app.isPackaged ? join(process.resourcesPath, 'resources', 'LICENSES.chromium.html') : join(__dirname, '../..', 'resources/LICENSES.chromium.html'))
     }
     if (typeof action !== 'string' || !Object.hasOwn(actions, action)) throw Error('Unknown account action.')
@@ -572,7 +574,9 @@ function registerIpc(): void {
 
   ipcMain.handle('setup:check', () => checkTools())
   ipcMain.on('app:openExternal', (_e, url: string) => {
-    if (/^https?:\/\//i.test(url)) shell.openExternal(url).catch(() => undefined)
+    if (typeof url === 'string' && (/^https?:\/\//i.test(url) || url === SUPPORT_MAILTO)) {
+      shell.openExternal(url).catch(() => undefined)
+    }
   })
   ipcMain.on('app:revealPath', (_e, p: string) => shell.showItemInFolder(p))
   ipcMain.on('app:openPath', (_e, p: string) => {

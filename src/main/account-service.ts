@@ -129,4 +129,8 @@ export class AccountService {
   return this.view()
  }
  support(){return shell.openExternal(EDITION.supportUrl)}
+ policy(page:'terms'|'privacy'){
+  if(!this.origin)throw Error('Account service is not configured.')
+  return shell.openExternal(new URL('/'+page+'/',this.origin).href)
+ }
 }

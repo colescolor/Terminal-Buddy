@@ -1,0 +1,15 @@
+Terminal Buddy subscription — Eric Colton Newman
+
+Terminal Buddy is an independent desktop workspace for coding agents. Claude Code, Codex and other providers' accounts, subscriptions and usage are separate. Terminal Buddy is not an official Anthropic or OpenAI application.
+
+The individual subscription is USD $6 per month. Selecting Subscribe and completing Stripe Checkout starts payment immediately, including if you still have trial time. The subscription renews monthly until canceled. Checkout displays the amount you authorize before payment. Starting a trial or signing in does not authorize a payment.
+
+Select Start free trial in the app to activate 14 days of full application access for your verified account, with no card required. Reinstalling or signing in on another device does not restart that account's trial. There is no automatic charge when the trial ends. An internet connection is required to sign in and activate the trial.
+
+Manage billing opens Stripe's customer portal to view invoices, update your payment method or cancel renewal. Canceling renewal preserves access through the paid-through date. Subscription status is confirmed by the account service, not by the browser return page alone. Contact cole@terminalbuddy.to for billing problems or refund requests. These instructions do not exclude any mandatory consumer rights.
+
+The subscription build verifies access online and can use previously verified access for up to seven days offline, bounded by its verified trial or paid-access date. A failed renewal has a three-day grace period after the last paid-through date. A network timeout alone does not cancel your subscription. Once access expires, new workspace launches require a subscription; already-running terminals remain operable until closed. Your projects and conversation files are not deleted or hidden to enforce access.
+
+The subscription edition is a separate, opt-in installation. Existing free copies retain their original terms. Software and dependencies retain their accompanying licenses, including existing MIT grants; buying account-service access does not replace or restrict those licenses. No future proprietary software license is introduced by these subscription instructions.
+
+For help, account access, privacy requests or billing questions, contact cole@terminalbuddy.to or visit https://terminalbuddy.to/contact/. For lost email access, use the private recovery form linked from the account page. Never send passwords, verification codes, full card numbers or coding-agent credentials.

@@ -9,7 +9,7 @@
 
 ## Why
 
-Future paid-edition development is isolated and disabled by default. See [BILLING_SETUP.md](BILLING_SETUP.md), [LICENSE_TRANSITION.md](LICENSE_TRANSITION.md), and [PRIVACY_BILLING_DRAFT.md](PRIVACY_BILLING_DRAFT.md). Version 0.2.0-beta.1 in this branch is a local test build, not an announced commercial release. Existing free releases and their notices are unchanged.
+Version 0.2.0-beta.2 is the separate, opt-in subscription beta: a 14-day account trial with no card required, then an optional USD $6/month subscription. It uses its own application identity and local profile. Previous free releases and their MIT grants remain unchanged. Account-service configuration and release evidence are in [SUBSCRIPTION_RELEASE.md](SUBSCRIPTION_RELEASE.md); no proprietary software license is introduced by this release.
 
 Running several coding agents at once means keeping track of their terminals, projects, and questions. Terminal Buddy makes those terminals easy to name, recognize, and organize.
 
@@ -25,7 +25,7 @@ Three things it fixes:
 2. **You lose your old sessions.** Both CLIs keep every conversation on disk. Terminal Buddy indexes them, and you can drop one onto a card to pick it up.
 3. **Important prompts get lost.** The live terminal is the only session view, so no transcript overlay hides questions or menus.
 
-It is a personal tool, published in case it's useful. No telemetry, no account, no server — everything reads from your local disk.
+Projects and coding-agent histories are read locally. The subscription edition uses an online account service for email sign-in, trial dates and payment/access status. It does not upload project paths, chats, code or agent credentials for licensing. The historical free edition has no Terminal Buddy account requirement.
 
 ## One terminal, no transcript view
 

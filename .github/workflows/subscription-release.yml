@@ -1,0 +1,45 @@
+name: Subscription beta packages
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mac:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci --prefix billing
+      - run: npm run typecheck && npm run test:account && npm run test:platform && npm run build
+      - name: Package separate subscription beta
+        run: node node_modules/electron-builder/cli.js --config electron-builder.commercial.yml --mac dmg zip --${{ matrix.arch }} --config.mac.identity=- --config.mac.hardenedRuntime=false --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Verify native package, license notices and release provenance
+        run: node scripts/verify-subscription-package.mjs --arch=${{ matrix.arch }}
+      - name: Test packaged account gate and native terminal module
+        run: node scripts/verify-subscription-desktop.mjs
+        env:
+          BUDDY_EXE: release-commercial/mac${{ matrix.arch == 'arm64' && '-arm64' || '' }}/Terminal Buddy Subscription.app/Contents/MacOS/Terminal Buddy Subscription
+      - uses: actions/upload-artifact@v4
+        with:
+          name: subscription-macos-${{ matrix.arch }}
+          path: |
+            release-commercial/*.dmg
+            release-commercial/*.zip
+            release-commercial/manifest-*.json
+            artifacts/subscription-*.png
+          if-no-files-found: error

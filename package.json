@@ -1,6 +1,6 @@
 {
   "name": "terminal-buddy",
-  "version": "0.2.0-beta.1",
+  "version": "0.2.0-beta.2",
   "description": "Friendly, organized terminals for your coding agents, with custom names and desktop alerts.",
   "main": "./out/main/index.js",
   "author": "Terminal Buddy contributors",
@@ -47,7 +47,9 @@
     "test:terminal-input": "node scripts/verify-terminal-input.mjs",
     "test:account": "node --test scripts/verify-account-access.mjs scripts/verify-account-session.mjs scripts/verify-account-sync.mjs",
     "test:billing": "npm --prefix billing test",
-    "billing:preview": "npm --prefix billing run dev"
+    "billing:preview": "npm --prefix billing run dev",
+    "dist:subscription:win": "npm run build && electron-builder --config electron-builder.commercial.yml --win zip --x64 --publish never",
+    "test:subscription-package": "node scripts/verify-subscription-package.mjs"
   },
   "dependencies": {
     "@lydell/node-pty": "1.2.0-beta.15",

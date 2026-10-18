@@ -1,5 +1,9 @@
 import { readFile } from 'node:fs/promises'
-export async function migrate(db) {
+import {schemaIdentifier} from './schema.mjs'
+export async function migrate(db,{schema='public'}={}) {
+ const identifier=schemaIdentifier(schema)
+ const current=await db.query('SELECT current_schema() AS schema')
+ if(current.rows[0]?.schema!==schema)throw Error('Migration connection does not target the intended billing schema.')
  for(const file of ['001_accounts.sql','002_recovery.sql']){
   const sql=await readFile(new URL('./migrations/'+file, import.meta.url), 'utf8')
   for(const statement of sql.split(';').filter(x=>x.trim()))await db.query(statement)
@@ -8,15 +12,25 @@ export async function migrate(db) {
  // RLS alone does not protect operations such as TRUNCATE; remove those grants.
  const roles=await db.query("SELECT rolname FROM pg_roles WHERE rolname IN ('anon','authenticated')")
  for(const role of ['anon','authenticated'])if(roles.rows.some(row=>row.rolname===role)){
-  await db.query('REVOKE ALL ON public.accounts, public.desktop_sessions, public.device_flows, public.processed_events, public.recovery_requests FROM '+role)
+  await db.query('REVOKE ALL ON '+['accounts','desktop_sessions','device_flows','processed_events','recovery_requests'].map(table=>identifier+'.'+table).join(', ')+' FROM '+role)
  }
 }
-export function postgres(pool) {
- return { query: (sql,args) => pool.query(sql,args), transaction: async fn => {
+export function postgres(pool,{schema='public'}={}) {
+ const identifier=schemaIdentifier(schema)
+ const transaction=async fn => {
   const client=await pool.connect()
-  try { await client.query('BEGIN'); const value=await fn(client); await client.query('COMMIT'); return value }
+  try {
+   await client.query('BEGIN')
+   // SET LOCAL and all statements use one transaction/connection. This works
+   // with Supabase transaction pooling without leaking state to another user.
+   await client.query('SET LOCAL search_path TO '+identifier+', pg_catalog')
+   const current=await client.query('SELECT current_schema() AS schema')
+   if(current.rows[0]?.schema!==schema)throw Error('Billing schema is unavailable to this database role.')
+   const value=await fn(client); await client.query('COMMIT'); return value
+  }
   catch(error){ await client.query('ROLLBACK'); throw error } finally {client.release()}
- }}
+ }
+ return {query:(sql,args)=>transaction(client=>client.query(sql,args)),transaction}
 }
 export async function lockedAccount(db,id,fn) {
  return db.transaction(async tx=>{

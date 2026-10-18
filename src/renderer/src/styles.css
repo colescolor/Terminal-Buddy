@@ -72,6 +72,23 @@ body.resizing {
   height: 100%;
 }
 
+.support-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: none;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--fg-dim);
+  font-size: 11px;
+}
+.support-footer a { color: var(--accent); text-underline-offset: 3px; }
+.support-footer a:hover { color: var(--fg); }
+.support-footer a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
 /* ---------------------------------------------------------------- top bar */
 
 .topbar {

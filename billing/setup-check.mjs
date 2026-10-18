@@ -3,8 +3,10 @@ import {ownerIds} from './admin.mjs'
 import {databaseConnection} from './connection.mjs'
 import {notificationIssues} from './subscriber-alerts.mjs'
 import {billingMode} from './mode.mjs'
+import {databaseSchema} from './schema.mjs'
 export function configurationIssues(env){
  const issues=notificationIssues(env)
+ try{databaseSchema(env)}catch(error){issues.push(error.message)}
  for(const name of ['STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET','STRIPE_MONTHLY_PRICE_ID','SUPABASE_URL','SUPABASE_PUBLISHABLE_KEY','DATABASE_URL','BILLING_ORIGIN','ENTITLEMENT_PRIVATE_KEY'])if(!env[name]?.trim())issues.push(name+': missing')
  if(env.STRIPE_SECRET_KEY)try{billingMode(env)}catch{issues.push('STRIPE_SECRET_KEY: billing mode mismatch or production build is not approved')}
  if(env.STRIPE_WEBHOOK_SECRET&&!/^whsec_[A-Za-z0-9_]+$/.test(env.STRIPE_WEBHOOK_SECRET))issues.push('STRIPE_WEBHOOK_SECRET: invalid format')

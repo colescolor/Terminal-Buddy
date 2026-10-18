@@ -1,6 +1,10 @@
 # Future license transition — owner/legal approval required
 
+Current launch clarification (October 18): the 0.2.0-beta.2 subscription beta preserves the existing MIT application license. The account service charges for access under the disclosed trial/subscription offer; no proprietary EULA or replacement copyright grant is applied. The subscription package's copyright metadata copies the existing LICENSE notice rather than inventing a rights holder. Earlier commercial-license proposals below remain historical proposals, not claims that MIT rights were removed. Future changes to the code license still need a separate decision.
+
 This is a local implementation for 0.2.0-beta.1. Billing does not change any license. The application LICENSE and MIT package declaration remain intact; copyright: MIT remains unresolved, not silently corrected.
+
+October 18 owner decision: future releases should be a paid application under commercial terms, rather than MIT code with a paid hosted service. This records the requested direction only. No commercial EULA or replacement copyright notice has been supplied or applied. The owner's seller identity is Eric Colton Newman; that alone does not establish ownership of all contributors' or imported code. Historical MIT copies and third-party grants remain intact. New production billing data is isolated in the existing Supabase project; this technical choice does not alter licensing.
 
 ## Verified baseline and scope
 Application checkout: C:\Users\Owner\Desktop\code-projects\Personal\Terminal Buddy.

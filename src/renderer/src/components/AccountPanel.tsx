@@ -20,10 +20,10 @@ export function AccountCard({value,run,busy=false}:{value:AccountView;run:(actio
    {value.state==='trial'&&<p>Full access until <strong>{date(value.trialEndsAt)}</strong>. No automatic charge when your trial ends.</p>}
    {value.state==='paid'&&<p>Your paid access is verified through <strong>{date(value.accessUntil)}</strong>.</p>}
    {value.state==='cancelling'&&<p>Renewal is canceled. Keep access through <strong>{date(value.accessUntil)}</strong>.</p>}
-   {value.state==='past_due'&&<p>Update your payment method. Proposed grace access lasts through <strong>{date(value.accessUntil)}</strong>.</p>}
-   {value.state==='expired'&&<p>You can keep using open terminals and retrieve your saved work. Subscribe to start new sessions in the future commercial edition.</p>}
+   {value.state==='past_due'&&<p>Update your payment method. Grace access lasts through <strong>{date(value.accessUntil)}</strong>.</p>}
+   {value.state==='expired'&&<p>You can keep using open terminals and retrieve your saved work. Subscribe to start new sessions in this subscription edition.</p>}
    {value.state==='unknown'&&<p>A connection problem is not a cancellation. Refresh online to verify access. Existing terminals remain available.</p>}
-   {value.state==='confirming'&&<p>We are checking the payment provider. Refresh status shortly; a browser success page alone does not confirm payment.</p>}
+   {value.state==='confirming'&&<p>We are checking the payment provider automatically. This screen updates when your subscription is confirmed.</p>}
    {value.offline&&<p className="account-note">Offline: cached access cannot extend your trial or paid-through date.</p>}
    <div className="account-actions">
     {value.state==='signed-out'&&<button className="btn primary" disabled={busy} onClick={()=>run('signIn')}>Sign in with email</button>}
@@ -35,6 +35,7 @@ export function AccountCard({value,run,busy=false}:{value:AccountView;run:(actio
    {['trial','eligible','expired'].includes(value.state)&&<div className="account-purchase"><h4>One individual plan. $6/month.</h4><p>Charged today, then every month until canceled through Manage billing. Buying during the trial starts billing today; unused trial days do not postpone your first payment.</p><label className="account-consent"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/> I understand the recurring charge and cancellation.</label><button className="btn primary" disabled={busy||!consent} onClick={()=>run('subscribe')}>{value.billingPending?'Reopen secure checkout':'Subscribe — $6/month, charged today'}</button></div>}
   </>}
   <p className="account-note">Claude/Codex accounts and usage are separate.</p>
+  {value.configured&&<div className="account-actions"><button className="text-btn" onClick={()=>run('terms')}>Subscription terms</button><button className="text-btn" onClick={()=>run('privacy')}>Account privacy</button></div>}
   {value.message&&<p role="status" className="account-note">{value.message}</p>}
   <div className="account-actions"><button className="btn" onClick={()=>run('support')}>Get help</button><button className="btn" onClick={()=>run('notices')}>Third-party licenses</button><button className="btn" onClick={()=>run('chromium')}>Chromium notices</button></div>
  </section>
