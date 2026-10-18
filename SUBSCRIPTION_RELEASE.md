@@ -20,13 +20,13 @@ Public route checks passed for account, owner, recovery and policies. Unauthenti
 
 From this checkout, run `npm ci`, `npm ci --prefix billing`, `npm run typecheck`, `npm run test:account`, and `npm run build`.
 
-Windows: `node node_modules/electron-builder/cli.js --config electron-builder.commercial.yml --win zip --x64 --publish never`.
+Windows: `node node_modules/electron-builder/cli.js --config electron-builder.commercial.yml --win nsis --x64 --publish never`.
 
 Mac, on the relevant native runner: `node node_modules/electron-builder/cli.js --config electron-builder.commercial.yml --mac dmg zip --arm64 --config.mac.identity=- --config.mac.hardenedRuntime=false --publish never` (use --x64 for Intel). The Subscription beta packages workflow performs native builds and tests without publishing artifacts automatically.
 
-Validate with `node scripts/verify-subscription-package.mjs --arch=x64` (or arm64 on that Mac runner). Set BUDDY_EXE to the separate packaged subscription executable, then run `node scripts/verify-subscription-desktop.mjs`. This test uses a disposable profile and verifies the signed-out access gate, context isolation, license viewer and actual native PTY module. It does not sign in or charge anyone.
+Validate with `node scripts/verify-subscription-package.mjs --installer --arch=x64` (or arm64 on that Mac runner). Set BUDDY_EXE to the separate packaged subscription executable, then run `node scripts/verify-subscription-desktop.mjs`. This test uses a disposable profile and verifies the signed-out access gate, context isolation, license viewer and actual native PTY module. It does not sign in or charge anyone.
 
-Windows is distributed as a portable ZIP: extract the complete folder, then run Terminal Buddy Subscription.exe. This avoids shipping the unresolved external NSIS plugins in this beta; old NSIS installers remain untouched. Uninstall by closing the subscription app and removing its extracted folder. Account cancellation is separate, through Manage billing. Mac artifacts are ad-hoc signed, not Developer ID signed or verified notarized. Do not advise disabling operating-system security protections.
+Windows 0.2.0-beta.3 is a one-click, per-user EXE installer. Run Terminal-Buddy-Setup-0.2.0-beta.3-x64.exe; it installs the subscription app and creates desktop/Start menu shortcuts. Uninstall through Windows Settings → Apps. The beta.2 ZIP and all historical releases remain unchanged. Installer component notices and corresponding source archives accompany the new release; upstream ambiguities are recorded in LICENSE_TRANSITION.md. Account cancellation is separate, through Manage billing. Mac artifacts are ad-hoc signed, not Developer ID signed or verified notarized. Do not advise disabling operating-system security protections.
 
 The package verifier records hashes, sizes, actual signing status, version and source commit, and rejects stale code, missing notices and secret patterns. A dirty-source manifest must not be published. The ordinary builder config refuses to package subscription enforcement under the historical free app ID.
 

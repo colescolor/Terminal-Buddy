@@ -4,8 +4,16 @@ productName: Terminal Buddy Subscription
 copyright: "Copyright (c) 2026 Terminal Buddy contributors"
 directories:
   output: release-commercial
+toolsets:
+  nsis: '1.2.1'
 nsis:
   shortcutName: Terminal Buddy Subscription
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  packElevateHelper: false
+  deleteAppDataOnUninstall: false
+  artifactName: Terminal-Buddy-Setup-${version}-${arch}.${ext}
 win:
   artifactName: Terminal-Buddy-Subscription-${version}-${arch}.${ext}
 portable:

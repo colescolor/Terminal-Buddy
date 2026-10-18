@@ -1,0 +1,46 @@
+Windows installer components
+============================
+The subscription Windows installer uses electron-builder 26.15.3 and its pinned
+nsis@1.2.1 toolset (NSIS 3.12). These components are separate from Terminal Buddy.
+The application's existing MIT license is unchanged.
+
+Toolset recipe and exact upstream archive SHA-256 values:
+https://github.com/electron-userland/electron-builder-binaries/blob/nsis%401.2.1/packages/nsis/assets/nsis-windows.sh
+NSIS: https://nsis.sourceforge.io/License
+Core license and exception texts are included in NSIS-3.12-LICENSE.txt.
+
+StdUtils 1.14 / DLL 1.1.4.0, Copyright 2004-2018 LoRd_MuldeR.
+Unmodified Unicode DLL. LGPL 2.1 or later; see the full license and author's
+installer clarification alongside this file. Complete corresponding source,
+build files and original binaries are in StdUtils.2018-10-27.zip:
+https://github.com/lordmulder/stdutils/releases/download/1.14/StdUtils.2018-10-27.zip
+
+nsis7z 19.00, Nik Medved, Marek Mizanin, Stuart Welch and Igor Pavlov.
+The actual 19.00 archive supplies the LZMA SDK public-domain notice. Older wiki
+text describes an older LGPL implementation; both the actual notice and README
+are retained here. Full source and Visual Studio projects accompany the binary:
+https://nsis.sourceforge.io/mediawiki/images/6/69/Nsis7z_19.00.7z
+
+UAC plugin, Anders: zlib/libpng terms reproduced in UAC-LICENSE.txt.
+https://nsis.sourceforge.io/mediawiki/images/8/8f/UAC.zip
+
+nsProcess 1.6, Shengalts Aleksander / Instructor; Unicode update by brainsucker.
+Original README/attributions and unmodified source are retained in the release
+source archive. Upstream package does not contain an explicit standalone license;
+do not characterize it as MIT. https://nsis.sourceforge.io/NsProcess_plugin
+
+WinShell 20121005, Anders. Upstream labels the plugin "Freeware"; the original
+package contains DLLs without separate license/source text. Do not characterize
+it as MIT. https://nsis.sourceforge.io/WinShell_plug-in
+
+SpiderBanner, JasonFriday13. Original documentation and source are retained.
+Upstream supplies no explicit standalone license; do not characterize it as MIT.
+https://nsis.sourceforge.io/SpiderBanner_plug-in
+
+Installer-plugin-sources.zip beside the Windows installer contains the unchanged,
+checksum-verified upstream plugin archives, including StdUtils corresponding
+source. The open application repository contains the installer configuration and
+build commands; plugin DLLs can be rebuilt/replaced before rebuilding the installer.
+No additional restriction on modification or reverse engineering of those
+libraries is imposed by Terminal Buddy. Ambiguous upstream plugin terms remain
+documented in LICENSE_TRANSITION.md for owner/legal review.

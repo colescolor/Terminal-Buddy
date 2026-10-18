@@ -51,3 +51,9 @@ The NSIS distribution has a COPYING file; plugin-specific notices/conditions (in
 Confirm the actual rights holder, contributor permissions, imported code, mascot/screenshots/assets, missing Terminal repository, dependency notice completeness, commercial license scope and treatment of preexisting MIT components. Decide what is paid: a future licensed edition, hosted account services, support, or another approved offer. Future pricing alone does not establish exclusive rights or remove existing grants. Review existing public permissions before deciding any licensing change.
 
 References: https://opensource.org/license/mit and https://opensource.guide/legal/
+
+
+## Windows installer follow-up, 0.2.0-beta.3
+The new installer pins electron-builder 26.15.3 / NSIS toolset 1.2.1 (NSIS 3.12). Original upstream plugin archives were downloaded and checked against the toolset recipe SHA-256 values. Full core, StdUtils LGPL/clarification, UAC and actual nsis7z 19.00 license texts are included in resources/third-party and the installed Account license viewer. Installer-plugin-sources.zip accompanies the new release with all six unchanged upstream plugin archives, including the StdUtils source tar and build files. No existing license was replaced.
+
+This resolves missing copies of the identified notices, not every legal question. WinShell is labeled Freeware by its author without detailed terms; nsProcess and SpiderBanner archives omit a standalone license grant. Their original attribution/source documentation is preserved rather than guessed to be MIT. Owner/legal review of those upstream terms remains outstanding, along with the already-recorded ownership questions. Old v0.1.18 and beta.2 artifacts/notices are unchanged.

@@ -44,7 +44,8 @@ if(mac){
  // Windows PE uses a numeric four-part version; package.json retains the full beta version.
  assert.ok([pkg.version,pkg.version.split('-')[0]+'.0'].includes(binaryProductVersion),'Windows numeric product version must match the package version')
 }
-const files=mac?[`Terminal-Buddy-Subscription-${pkg.version}-mac-${arch}.dmg`,`Terminal-Buddy-Subscription-${pkg.version}-mac-${arch}.zip`]:[`Terminal-Buddy-Subscription-${pkg.version}-${arch}.zip`]
+const installer=process.argv.includes('--installer')
+const files=mac?[`Terminal-Buddy-Subscription-${pkg.version}-mac-${arch}.dmg`,`Terminal-Buddy-Subscription-${pkg.version}-mac-${arch}.zip`]:[installer?`Terminal-Buddy-Setup-${pkg.version}-${arch}.exe`:`Terminal-Buddy-Subscription-${pkg.version}-${arch}.zip`]
 const assets=[]
 for(const filename of files){
  const path=join('release-commercial',filename),bytes=await readFile(path)
@@ -52,8 +53,19 @@ for(const filename of files){
  else{
   const tool=resolve('node_modules/electron-winstaller/vendor/7z.exe')
   execFileSync(tool,['t',path],{stdio:'pipe',windowsHide:true})
-  const shipped=execFileSync(tool,['x','-so',path,'resources\\app.asar'],{maxBuffer:20*1024*1024,windowsHide:true})
+  let container=path
+  if(installer){
+   assert.equal(bytes.subarray(0,2).toString(),'MZ')
+   const destination=resolve('artifacts/installer-payload');await mkdir(destination,{recursive:true})
+   execFileSync(tool,['x','-y','-o'+destination,path,'$PLUGINSDIR/app-64.7z'],{stdio:'pipe',windowsHide:true})
+   container=join(destination,'$PLUGINSDIR/app-64.7z')
+   execFileSync(tool,['t',container],{stdio:'pipe',windowsHide:true})
+  }
+  const shipped=execFileSync(tool,['x','-so',container,'resources\\app.asar'],{maxBuffer:20*1024*1024,windowsHide:true})
   assert.equal(createHash('sha256').update(shipped).digest('hex'),createHash('sha256').update(await readFile(archive)).digest('hex'))
+  const shippedNotices=execFileSync(tool,['x','-so',container,'resources\\resources\\THIRD_PARTY_LICENSES.txt'],{maxBuffer:10*1024*1024,windowsHide:true}).toString()
+  assert.equal(shippedNotices,await readFile(join(resources,'resources/THIRD_PARTY_LICENSES.txt'),'utf8'))
+  assert.ok(shippedNotices.includes('StdUtils plug-in LGPL Clarification'))
  }
  assets.push({filename,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex'),platform:mac?'macos':'windows',architecture:arch,signingStatus,...(mac?{minimumOS,notarization:'not-verified'}:{binaryProductVersion})})
 }

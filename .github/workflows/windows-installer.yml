@@ -1,0 +1,33 @@
+name: Windows subscription installer
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  installer:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci --prefix billing
+      - run: npm run typecheck
+      - run: npm run test:account
+      - run: npm run dist:subscription:win
+      - run: node scripts/verify-subscription-package.mjs --installer
+      - name: Install, run, reinstall and uninstall on disposable Windows
+        shell: pwsh
+        run: ./scripts/verify-installer.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-subscription-installer
+          path: |
+            release-commercial/Terminal-Buddy-Setup-*.exe
+            release-commercial/manifest-windows-x64.json
+            artifacts/subscription-*.png
+          if-no-files-found: error
