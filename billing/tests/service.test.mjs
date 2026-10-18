@@ -99,3 +99,19 @@ test('failed checkout safely retries; mismatched customer is refused; live confi
   assert.equal(accessFor({trial_started_at:1,trial_ends_at:2,billing:{}},3).state,'expired')
  }finally{await f.db.close()}
 })
+
+test('verified browser can revoke only its own desktop logins, without resetting the trial',async()=>{
+ const f=await fixture();try{
+  const first=await f.login(),second=await f.login();const trial=await f.api.startTrial(USER)
+  const otherToken=randomBytes(32).toString('base64url')
+  await f.db.query('INSERT INTO accounts(id,email) VALUES($1,$2)',[OTHER,'other@example.invalid'])
+  await f.db.query('INSERT INTO desktop_sessions(token_hash,account_id,created_at,expires_at) VALUES($1,$2,$3,$4)',[createHash('sha256').update(otherToken).digest('base64url'),OTHER,f.now(),f.now()+DAY])
+  await assert.rejects(f.api.revokeDevices('unverified'),e=>e.status===401)
+  assert.equal(await f.api.authenticate(first.token),USER)
+  await f.api.revokeDevices('verified-fixture')
+  await assert.rejects(f.api.authenticate(first.token),e=>e.status===401)
+  await assert.rejects(f.api.authenticate(second.token),e=>e.status===401)
+  assert.equal(await f.api.authenticate(otherToken),OTHER)
+  await f.login();assert.equal((await f.api.startTrial(USER)).trialEndsAt,trial.trialEndsAt)
+ }finally{await f.db.close()}
+})

@@ -41,7 +41,7 @@ export class AccountService {
   if(u.protocol!=='https:'&&(app.isPackaged||u.hostname!=='127.0.0.1'))throw Error('Invalid billing service.')
   const response=await fetch(this.origin+'/api'+path,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body),signal:AbortSignal.timeout(15000),redirect:'error'})
   const data=await response.json() as any
-  if(!response.ok)throw Error(response.status===401?'Sign in again to refresh your account.':data.error||'Account service is temporarily unavailable.')
+  if(!response.ok)throw Object.assign(Error(response.status===401?'Sign in again to refresh your account.':data.error||'Account service is temporarily unavailable.'),{status:response.status})
   return data
  }
  view(offline=false,message?:string):AccountView{
@@ -66,7 +66,11 @@ export class AccountService {
    if(generation!==this.generation)return this.view()
    if(verifiedAccess(record,this.key,Date.now(),0).state==='unknown')throw Error('Access could not be verified.')
    this.record=record;this.highestWall=Date.now();this.clockChanged=false;this.lastWall=Date.now();this.lastMono=performance.now();this.persist();return this.view()
-  }catch{return this.view(true,'Status could not be refreshed. Previously verified access is bounded; running terminals are unaffected.')}
+  }catch(error){
+   if(generation!==this.generation)return this.view()
+   if((error as {status?:number}).status===401){this.token='';this.record=null;this.persist();return this.view(false,'Your login expired or was revoked. Sign in again. Running terminals are unaffected.')}
+   return this.view(true,'Status could not be refreshed. Previously verified access is bounded; running terminals are unaffected.')
+  }
  }
  async startTrial(){
   if(!this.token)throw Error('Sign in before starting a trial.')

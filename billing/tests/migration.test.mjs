@@ -11,7 +11,7 @@ test('migration removes Supabase browser default grants, preserves other tables 
   await migrate(db)
   for(const role of ['anon','authenticated']){
    assert.equal((await db.query("SELECT has_table_privilege($1,'unrelated_fixture','SELECT') AS allowed",[role])).rows[0].allowed,true)
-   for(const table of ['accounts','desktop_sessions','device_flows','processed_events']){
+   for(const table of ['accounts','desktop_sessions','device_flows','processed_events','recovery_requests']){
     const grants=await db.query("SELECT has_table_privilege($1,$2,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') AS allowed",[role,table])
     assert.equal(grants.rows[0].allowed,false)
    }

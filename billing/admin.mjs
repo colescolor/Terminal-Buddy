@@ -7,14 +7,18 @@ export function ownerIds(value='') {
  if(ids.some(id=>!uuid.test(id)))throw Error('OWNER_USER_IDS must contain Supabase user UUIDs.')
  return new Set(ids.map(id=>id.toLowerCase()))
 }
+export async function authorizeOwner(verifyUser,owners,token){
+ if(!owners.size)fail('Owner dashboard is not configured.',503)
+ if(typeof token!=='string'||token.length>8192)fail('Sign in to the owner dashboard.',401)
+ let user;try{user=await verifyUser(token)}catch{fail('Sign in again.',401)}
+ if(!user?.email_confirmed_at)fail('Verify your email first.',401)
+ if(!owners.has(user.id?.toLowerCase()))fail('This account does not have owner access.',403)
+ return user
+}
 export function ownerService({db,verifyUser,owners=new Set(),now=Date.now,graceDays=3}) {
  return {async overview(token,body={}) {
   // Authorization is server-side, keyed to immutable provider IDs, never email or browser flags.
-  if(!owners.size)fail('Owner dashboard is not configured.',503)
-  if(typeof token!=='string'||token.length>8192)fail('Sign in to the owner dashboard.',401)
-  let user;try{user=await verifyUser(token)}catch{fail('Sign in again.',401)}
-  if(!user?.email_confirmed_at)fail('Verify your email first.',401)
-  if(!owners.has(user.id?.toLowerCase()))fail('This account does not have owner access.',403)
+  const user=await authorizeOwner(verifyUser,owners,token)
   if(!body||typeof body!=='object'||Array.isArray(body)||Object.keys(body).some(k=>!['search','state','page'].includes(k)))fail('Invalid filter.',400)
   const {search='',state='',page=0}=body
   if(typeof search!=='string'||search.length>120||typeof state!=='string'||(state&&!states.includes(state))||!Number.isInteger(page)||page<0||page>2000)fail('Invalid filter.',400)

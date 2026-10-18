@@ -8,6 +8,7 @@ import {stripeGateway} from './stripe.mjs'
 import {handler} from './http.mjs'
 import {ownerService,ownerIds} from './admin.mjs'
 import {subscriberAlerts,resendAlerts} from './subscriber-alerts.mjs'
+import {recoveryService} from './recovery.mjs'
 export function runtime(env=process.env) {
  const origin=new URL(env.BILLING_ORIGIN)
  if(origin.protocol!=='https:'||origin.username||origin.password||origin.pathname!=='/'||origin.search||origin.hash)throw Error('Configure an HTTPS billing origin.')
@@ -22,5 +23,6 @@ export function runtime(env=process.env) {
   offlineDays:Number(env.OFFLINE_DAYS||7),graceDays:Number(env.PAST_DUE_GRACE_DAYS||3),
   verifyUser})
  const owner=ownerService({db,verifyUser,owners:ownerIds(env.OWNER_USER_IDS),graceDays:Number(env.PAST_DUE_GRACE_DAYS||3)})
- return {api,alerts,handler:handler(api,{origin:origin.origin,supabaseUrl:env.SUPABASE_URL,supabaseKey:env.SUPABASE_PUBLISHABLE_KEY},owner)}
+ const recovery=recoveryService({db,verifyUser,owners:ownerIds(env.OWNER_USER_IDS)})
+ return {api,alerts,handler:handler(api,{origin:origin.origin,supabaseUrl:env.SUPABASE_URL,supabaseKey:env.SUPABASE_PUBLISHABLE_KEY},owner,recovery)}
 }

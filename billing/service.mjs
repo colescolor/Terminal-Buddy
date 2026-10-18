@@ -32,6 +32,15 @@ export function service({db,stripe,verifyUser,privateKey,origin,now=Date.now,off
  }
  return {
   authenticate,
+  async revokeDevices(jwt){
+   const user=await verifyUser(jwt)
+   if(!user?.email_confirmed_at||!user.email)fail('Verify your email first.',401)
+   await db.transaction(async tx=>{
+    await tx.query('DELETE FROM desktop_sessions WHERE account_id=$1',[user.id])
+    await tx.query('DELETE FROM device_flows WHERE account_id=$1',[user.id])
+   })
+   return {signedOut:true}
+  },
   async deviceCheck({id,state}){
    if(!/^[0-9a-f-]{36}$/i.test(id||'')||!/^[A-Za-z0-9_-]{43}$/.test(state||''))return {available:false}
    const r=await db.query('SELECT state_hash,expires_at,consumed,account_id FROM device_flows WHERE id=$1',[id])

@@ -26,7 +26,9 @@ try{
  await page.getByLabel('Email address').fill('alex@example.invalid')
  await page.getByRole('button',{name:'Send sign-in code'}).click()
  await expect(page.getByLabel('Email verification code')).toBeVisible()
- const sendBox=await page.getByRole('button',{name:'Send sign-in code'}).boundingBox(),codeBox=await page.getByLabel('Email verification code').boundingBox()
+ const sendBox=await page.locator('#email-form button').first().boundingBox(),codeBox=await page.getByLabel('Email verification code').boundingBox()
+ await expect(page.locator('#email-form button').first()).toBeDisabled()
+ await expect(page.getByLabel('Email address')).toHaveAttribute('readonly','')
  if(codeBox.y<sendBox.y+sendBox.height+16)throw Error('Verification steps lack spacing')
  await page.getByLabel('Email verification code').fill('123456')
  await page.getByRole('button',{name:'Verify email'}).click()
@@ -51,5 +53,12 @@ try{
  await expect(page.locator('#status')).toContainText('expired or was already used')
  await expect(page.locator('#approve')).toBeHidden()
  if(approveCalls!==1)throw Error('Duplicate approval was sent')
+ available=true;expiredOnApprove=false
+ await page.goto('http://billing.example.invalid/account/')
+ await page.getByLabel('Email address').fill('wrong@example.invalid');await page.getByRole('button',{name:'Send sign-in code'}).click()
+ await page.getByRole('button',{name:'Use a different email'}).click()
+ await expect(page.locator('#code-form')).toBeHidden();await expect(page.getByLabel('Email address')).not.toHaveAttribute('readonly','')
+ await page.getByLabel('Email address').fill('right@example.invalid');await page.getByRole('button',{name:'Send sign-in code'}).click()
+ await expect(page.locator('#status')).toContainText('right@example.invalid')
  console.log('PASS mocked browser OTP, step spacing, completed-step hiding, expired-link detection, late expiry message and duplicate-click prevention. No email sent or real authentication claimed.')
 }finally{await browser.close()}

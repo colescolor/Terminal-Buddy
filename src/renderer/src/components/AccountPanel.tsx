@@ -23,8 +23,8 @@ export function AccountCard({value,run,busy=false}:{value:AccountView;run:(actio
     {value.state==='signed-out'&&<button className="btn primary" disabled={busy} onClick={()=>run('signIn')}>Sign in with email</button>}
     {value.state==='eligible'&&<button className="btn primary" disabled={busy} onClick={()=>run('startTrial')}>Start free trial — no card</button>}
     {value.customer&&<button className="btn" disabled={busy} onClick={()=>run('manage')}>Manage billing</button>}
-    {value.email&&<button className="btn" disabled={busy} onClick={()=>run('refresh')}>Refresh status</button>}
-    {value.email&&<button className="btn" disabled={busy} onClick={()=>run('signOut')}>Sign out</button>}
+    {value.state!=='signed-out'&&<button className="btn" disabled={busy} onClick={()=>run('refresh')}>Refresh status</button>}
+    {value.state!=='signed-out'&&<button className="btn" disabled={busy} onClick={()=>run('signOut')}>Sign out</button>}
    </div>
    {['trial','eligible','expired'].includes(value.state)&&<div className="account-purchase"><h4>One individual plan. $6/month.</h4><p>Charged today, then every month until canceled through Manage billing. Buying during the trial starts billing today; unused trial days do not postpone your first payment.</p><label className="account-consent"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/> I understand the recurring charge and cancellation.</label><button className="btn primary" disabled={busy||!consent} onClick={()=>run('subscribe')}>Subscribe — $6/month, charged today</button></div>}
   </>}

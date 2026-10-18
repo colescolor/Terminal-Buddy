@@ -15,6 +15,6 @@ async function scan(dir){for(const item of await readdir(dir,{withFileTypes:true
  }
 }}}
 await scan('public')
-for(const page of ['account','admin'])assert.match(await readFile('public/'+page+'/index.html','utf8'),/noindex,nofollow/)
+for(const page of ['account','admin','recovery'])assert.match(await readFile('public/'+page+'/index.html','utf8'),/noindex,nofollow/)
 assert.match(await readFile('public/_headers','utf8'),/frame-ancestors 'none'/)
 console.log('PASS server function bundle boundary, no deployed fixtures, browser secret-pattern scan, account/admin noindex and CSP.')
