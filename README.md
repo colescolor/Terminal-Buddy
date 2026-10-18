@@ -9,7 +9,7 @@
 
 ## Why
 
-Version 0.2.0-beta.2 is the separate, opt-in subscription beta: a 14-day account trial with no card required, then an optional USD $6/month subscription. It uses its own application identity and local profile. Previous free releases and their MIT grants remain unchanged. Account-service configuration and release evidence are in [SUBSCRIPTION_RELEASE.md](SUBSCRIPTION_RELEASE.md); no proprietary software license is introduced by this release.
+Version 0.2.0 is the separate, opt-in subscription edition: a 14-day account trial with no card required, then an optional USD $6/month subscription. It uses its own application identity and local profile. Previous free releases and their MIT grants remain unchanged. Account-service configuration and release evidence are in [SUBSCRIPTION_RELEASE.md](SUBSCRIPTION_RELEASE.md); no proprietary software license is introduced by this release.
 
 Running several coding agents at once means keeping track of their terminals, projects, and questions. Terminal Buddy makes those terminals easy to name, recognize, and organize.
 
