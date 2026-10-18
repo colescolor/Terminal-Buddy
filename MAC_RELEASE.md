@@ -2,6 +2,18 @@
 
 ## Launch work — October 17, 2026
 
+### Verified candidates
+
+[Native run 39098051088](https://github.com/colescolor/Terminal-Buddy/actions/runs/39098051088) passed **both** Apple Silicon and Intel jobs from `ba304255517a53c23a856103caca3dea8635b6ba` on main. Packaged terminal/process/keyboard, independent workspace/recovery, launcher and custom-assistant tests passed. Native package checks confirmed version, architecture, ad-hoc signature, DMG/ZIP integrity, original application license, runtime notices, Chromium notices and clean source provenance.
+
+All four files were downloaded to `release/native-mac-39098051088/{arm64,x64}/` and independently matched against their native SHA-256 manifests. Apple Silicon: DMG 130,541,584 bytes; ZIP 130,504,693 bytes. Intel: DMG 136,021,019 bytes; ZIP 136,016,491 bytes. Exact hashes are in each `manifest.json` and `SHA256SUMS.txt`.
+
+[Unpublished GitHub draft](https://github.com/colescolor/Terminal-Buddy/releases/tag/untagged-055ea0d7ba58877b917e): all four binaries plus architecture-qualified manifests, checksum/install notes and the original MIT license were uploaded. GitHub's reported SHA-256 digest and size matched every local upload. This draft requires repository access and is **not a public download URL**. Publishing is withheld pending the free-beta versus paid-launch decision; no historical release/tag/download was changed.
+
+These remain **free test candidates**, not subscription-enabled commercial installers. No Developer ID credential or notarization is configured. Separate-Mac downloaded installation and real provider sign-in remain untested. The website's Mac download support is deployed but its release list is empty, so no unverified/publicly unavailable binary is advertised. The owner was asked whether to publish a free experimental beta now or retain it for the paid launch; that answer remains pending.
+
+The first native run exposed needless account Keychain initialization in free editions; the account service now skips it until account storage is needed. An Intel smoke test also assumed persistence completed in 500 ms; it now waits for the actual persisted state. Both corrections passed native verification. Superseded/failed runs remain in history rather than being represented as successes.
+
 The owner authorized launch and Mac preparation. `productionAuthorized` records that authorization; it is not evidence of a final seller identity, live Stripe credentials, or Apple signing. The current source is **0.2.0-beta.1**, still the free MIT edition with subscription enforcement disabled. Earlier version-specific notes below are historical.
 
 Native Apple Silicon and Intel builds started in [run 39097212867](https://github.com/colescolor/Terminal-Buddy/actions/runs/39097212867) from `b0375c6`. A packaging correction adds Chromium notices inside the app and checks the bundled package version, application license, runtime notices, secret patterns and clean source commit. Rebuild after that correction before distributing anything.

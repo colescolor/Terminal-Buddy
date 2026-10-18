@@ -2,6 +2,10 @@
 
 October 17: the owner explicitly authorized launch, recorded by `productionAuthorized: true`. Other flags describe still-missing decisions/evidence, not another request for general launch permission. Read-only inspection found only the test billing Netlify site and the static marketing site, a sandbox Stripe key, and no GitHub signing secrets. Real payment credentials and the legal seller/copyright identity have not been supplied; the sandbox's test business name is not proof of that identity.
 
+The local-only owner input page is running at `http://127.0.0.1:4322` from ignored `billing/.local/production-intake.mjs`. It stores a live Stripe key and the owner's exact seller/copyright text in ignored `billing/.local/production-owner-inputs.json`, never in Git or the browser bundle. It validates the origin, rejects test keys, serves no-store responses, and performs no payment/deployment action. Values are not printed. Restart with `node billing/.local/production-intake.mjs` if needed; keep this file local. Native browser inspection could not safely establish the Stripe URL, so actual live dashboard setup must be resumed with a supported authenticated connection or the owner's supplied inputs.
+
+Application main includes the automatic account UI and Mac startup correction. Website main `4546705` deployed successfully as Netlify deployment `6ad44e64ac5584652dde32d1`. Live route/crawl/404 checks and full unauthenticated Windows installer/portable hashes passed. This website deployment does **not** enable live billing or change the free Windows v0.1.18 download. See `MAC_RELEASE.md` for the separately tested Mac candidates.
+
 The owner-operated Link test is paid and the isolated desktop observed paid access. The new app also reconciles automatically: one shared background worker checks on startup, at most once per 15 seconds on focus, every five seconds during the ten-minute Checkout observation window, then every five minutes. It coalesces requests, preserves bounded verified access during outages, and broadcasts updates to all account views. **Check again** is a fallback. A URL query never grants access.
 
 ## Work prepared locally
